@@ -26,8 +26,10 @@ export default function Home() {
   const [showAddForm, setShowAddForm] = useState(false)
   const [userName, setUserName] = useState('')
   const [selectedSong, setSelectedSong] = useState<Song | null>(null)
+  const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
+    setIsClient(true)
     const stored = localStorage.getItem('jamvote-songs')
     if (stored) {
       setSongs(JSON.parse(stored))
@@ -39,12 +41,18 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    localStorage.setItem('jamvote-songs', JSON.stringify(songs))
-  }, [songs])
+    if (isClient) {
+      localStorage.setItem('jamvote-songs', JSON.stringify(songs))
+    }
+  }, [songs, isClient])
+
+  const generateId = () => {
+    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  }
 
   const addSong = (title: string, artist: string, youtubeUrl?: string) => {
     const newSong: Song = {
-      id: Date.now().toString(),
+      id: generateId(),
       title,
       artist,
       youtubeUrl,
@@ -97,7 +105,7 @@ export default function Home() {
     }
 
     const newComment: Comment = {
-      id: Date.now().toString(),
+      id: generateId(),
       author: userName,
       text,
       createdAt: new Date().toISOString()
@@ -117,6 +125,10 @@ export default function Home() {
   const getYouTubeId = (url: string) => {
     const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/)
     return match ? match[1] : null
+  }
+
+  if (!isClient) {
+    return null
   }
 
   return (
