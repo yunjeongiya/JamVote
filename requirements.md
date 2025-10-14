@@ -18,9 +18,13 @@
 ### 백엔드
 - Node.js + Express
 - Socket.io (실시간 동기화)
+- node-cron (방 만료 처리)
+- bcrypt (비밀번호 해시)
+- express-rate-limit (Rate limiting, 선택)
 
 ### 데이터베이스
 - MongoDB (빠른 개발, 스키마 유연성)
+- Mongoose (ODM)
 
 ### 유튜브 연동
 - YouTube Data API v3 (검색)
@@ -29,7 +33,90 @@
 ### 호스팅
 - 프론트: Vercel (무료, 자동 배포)
 - 백엔드: Railway 또는 Render (무료 티어)
-- DB: MongoDB Atlas (무료 티어)
+- DB: MongoDB Atlas (무료 티어, 512MB)
+
+## 데이터베이스 스키마
+### Jam (방)
+```javascript
+{
+  jamId: String (unique, 6자리 영문+숫자),
+  name: String,
+  description: String (optional),
+  createdAt: Date,
+  expireAt: Date
+}
+```
+
+### User (사용자)
+```javascript
+{
+  jamId: String (FK),
+  name: String,
+  normalizedName: String (소문자 변환, 공백 제거 - 중복 체크용),
+  passwordHash: String (optional, bcrypt),
+  sessions: [String], // ['보컬', '기타']
+  createdAt: Date
+}
+```
+
+### Song (곡)
+```javascript
+{
+  songId: String (unique),
+  jamId: String (FK),
+  proposerName: String,
+  youtubeUrl: String,
+  title: String,
+  artist: String,
+  duration: String,
+  genre: String (optional),
+  requiredSessions: [String], // ['보컬', '기타', '베이스']
+  sessionDifficulties: Object, // { '보컬': 3, '기타': 4 }
+  allowEditByOthers: Boolean (default: true),
+  createdAt: Date
+}
+```
+
+### Vote (투표)
+```javascript
+{
+  voteId: String (unique),
+  songId: String (FK),
+  userName: String,
+  type: String, // 'like' | 'impossible'
+  reason: String (optional, 불가능 투표 시),
+  createdAt: Date
+}
+// Unique Index: (songId, userName) - 한 곡에 한 번만 투표
+```
+
+### Comment (댓글)
+```javascript
+{
+  commentId: String (unique),
+  songId: String (FK),
+  writerName: String,
+  sessionInfo: [String],
+  content: String,
+  createdAt: Date
+}
+```
+
+### Feedback (피드백)
+```javascript
+{
+  feedbackId: String (unique),
+  jamId: String (optional),
+  userName: String (optional),
+  content: String,
+  rating: Number (1-5, optional),
+  createdAt: Date
+}
+```
+
+### Cascade 삭제 규칙
+- Jam 삭제 시: 해당 jamId의 User, Song, Vote, Comment 모두 삭제
+- Song 삭제 시: 해당 songId의 Vote, Comment 모두 삭제
 
 ## 0. 소통 기능
 ### 기능
@@ -45,9 +132,12 @@
 
 ## 1. 방 생성 & 접속
 ### 기능
-- 방(Jam) 생성 시 6자리 랜덤 ID 생성 (영문+숫자)
+- 방(Jam) 생성 시 6자리 랜덤 ID 생성 (영문+숫자, 총 2,176,782,336가지 조합)
 - 공유 링크: `https://jamvote.app/{방아이디}`
-- 방 유효기한 기본값 30일, 만료 시 자동 삭제
+- 방 유효기한:
+  - 기본값 30일
+  - 선택 옵션: 7일/15일/30일/60일/90일
+  - 만료 시 자동 삭제 (매일 새벽 1시 크론 잡 실행)
 - 중복 방 아이디 입력 시 "이미 사용 중인 아이디입니다" 알림
 - 존재하지 않는 방 접속 시 "존재하지 않는 방입니다" 알림
 
@@ -58,7 +148,7 @@
   - 구분선
   - 방 이름 입력 (선택, 미입력 시 방 아이디가 이름)
   - 방 설명 입력 (선택)
-  - 방 유효기한 선택 (기본 30일, 7일/15일/30일/60일 선택)
+  - 방 유효기한 드롭다운 (7일/15일/30일(기본)/60일/90일)
   - "방 생성하기" 버튼
 - 방 생성 시:
   - 링크 자동 클립보드 복사 + 알림 토스트
@@ -69,9 +159,23 @@
 ### 기능
 - 프로필 정보: 이름, 비밀번호(선택), 세션(선택, 복수 선택 가능)
 - 세션 종류: 보컬, 기타, 베이스, 드럼, 키보드, 기타(직접입력)
-- 이름은 방 내 유니크, 중복 시 "이미 사용 중인 이름입니다" 알림
-- 비밀번호 미설정 시 이름만으로 재입장 가능 (편의성 우선)
+- 이름 중복 체크:
+  - 방 내 유니크 (normalizedName 기준: 소문자 변환 + 공백 제거)
+  - "김철수" vs "김철수" → 중복 ❌
+  - "John" vs "john" → 중복 ❌ (영문 이름 배려)
+  - " 김철수 " vs "김철수" → 중복 ❌ (공백 무시)
+  - 중복 시 "이미 사용 중인 이름입니다" 알림
+- 비밀번호:
+  - 미설정 시 이름만으로 재입장 가능 (편의성 우선)
+  - 설정 시 bcrypt 해시 저장
 - 로그인 상태는 localStorage에 방 아이디별로 저장 (브라우저 종료 시에도 유지)
+  ```javascript
+  // localStorage 구조 예시
+  {
+    "jam_abc123": { userName: "김철수", sessions: ["보컬"] },
+    "jam_def456": { userName: "John", sessions: ["기타", "베이스"] }
+  }
+  ```
 
 ### 화면 구성
 #### 로그인 화면
@@ -104,10 +208,14 @@
 
 #### 3.1.2 곡 투표
 - 투표 종류: 좋아요, 불가능
-- 한 사람이 여러 곡에 좋아요 가능
-- 투표 취소 가능 (다시 클릭)
+- 투표 규칙:
+  - 한 사람이 여러 곡에 투표 가능
+  - 한 곡에는 좋아요/불가능 중 하나만 선택 (상호배타적)
+  - 투표 변경 가능: 좋아요 → 불가능, 또는 반대로
+  - 투표 취소 가능 (같은 버튼 다시 클릭)
 - 불가능 투표 시 이유 입력 모달 (선택 사항)
 - 기명투표: 이름 + 세션 아이콘 표시
+- DB 제약: (songId, userName) Unique Index로 중복 투표 방지
 
 #### 3.1.3 댓글
 - 펼쳐보기 상태에서 댓글 작성 가능
@@ -116,7 +224,20 @@
 
 #### 3.1.4 실시간 동기화
 - Socket.io로 곡 추가, 투표, 댓글 실시간 반영
-- 네트워크 오류 시 "연결이 끊겼습니다. 재연결 중..." 토스트
+  ```javascript
+  // 서버 예시
+  io.to(jamId).emit('newVote', { songId, userName, type });
+
+  // 클라이언트 예시
+  socket.on('newVote', (data) => {
+    // UI 업데이트
+  });
+  ```
+- 네트워크 불안정 시:
+  - "연결이 끊겼습니다. 재연결 중..." 토스트
+  - 입력값 임시 저장 (localStorage)
+  - 재연결 시 자동 동기화
+- Socket.io 자동 재연결 기능 활용
 
 ### 3.2 화면 구성
 #### 3.2.1 상단 바
@@ -162,11 +283,46 @@
   - "수정하기" 버튼 (수정 권한 있을 경우만 표시)
 
 ## 4. 방 삭제 & 만료
-- 유효기한 지나면 자동 삭제 (크론 잡으로 매일 체크)
+- 유효기한 지나면 자동 삭제:
+  ```javascript
+  // node-cron 예시
+  cron.schedule('0 1 * * *', async () => { // 매일 새벽 1시
+    await Jam.deleteMany({ expireAt: { $lt: new Date() } });
+  });
+  ```
+- Cascade 삭제: Jam 삭제 시 관련 User, Song, Vote, Comment 모두 삭제
 - 만료된 방 접속 시: "유효기한이 지난 방입니다" 알림 + 메인 화면으로 이동
 - 데이터 백업 기능: v1에서는 미지원
 
-## 5. UI/UX 가이드
+## 5. 보안 가이드
+### 기본 보안 조치
+- **비밀번호 해시**: bcrypt (saltRounds: 10)
+  ```javascript
+  const hash = await bcrypt.hash(password, 10);
+  ```
+- **방 ID 랜덤성**: 6자리 영문+숫자 (무작위 접근 어려움)
+- **HTTPS**: Vercel/Railway 자동 제공
+- **세션 관리**: localStorage (XSS 위험 있으나 편의성 우선)
+
+### 선택 보안 조치 (Phase 2)
+- **Rate limiting**: 투표 API 남용 방지
+  ```javascript
+  const limiter = rateLimit({
+    windowMs: 60000, // 1분
+    max: 30 // 최대 30회
+  });
+  app.use('/api/vote', limiter);
+  ```
+- **입력값 검증**: express-validator 사용
+- **XSS 방어**: React의 기본 escaping 활용
+
+### 보안 vs 편의성 트레이드오프
+- ✅ 비밀번호 선택 사항 → 진입장벽 낮춤
+- ✅ 비밀번호 없는 프로필 수정 → UX 간소화
+- ⚠️ 악의적 사용 가능 → 밴드 멤버 간 사회적 통제로 완화
+- ⚠️ 데이터 중요도 낮음 → 합주곡 투표, 개인정보 없음
+
+## 6. UI/UX 가이드
 ### 반응형
 - 모바일 우선 (최소 320px)
 - 태블릿/데스크톱에서도 사용 가능하나 모바일 중심 디자인
@@ -177,11 +333,21 @@
 - 포인트 컬러: 파란색 (투표 버튼 등)
 - 경고: 빨간색 (유효기한 임박, 불가능 투표)
 
+### 모바일 최적화
+- **터치 영역**: 버튼/입력란 최소 44x44px
+- **폰트 크기**: 한글 16px 이상 (가독성)
+- **모달**: Bottom Sheet 스타일 (손가락 닿기 쉬움)
+- **입력 필드**: 자동 포커스 최소화 (키보드 자동 팝업 방지)
+
 ### 로딩 상태
 - API 호출 시 스피너 표시
 - 실시간 동기화는 백그라운드 처리 (화면 멈춤 없음)
 
-## 6. 개발 우선순위
+### 접근성
+- 기본 콘트라스트 준수 (WCAG AA)
+- 버튼 라벨 한글 우선 (아이콘만 있을 경우 aria-label)
+
+## 7. 개발 우선순위
 ### Phase 1 (MVP)
 1. 방 생성/접속
 2. 프로필 생성/로그인
@@ -194,8 +360,9 @@
 7. 프로필 수정
 8. 방 유효기한 수정
 9. 피드백 모달
+10. Rate limiting
 
 ### Phase 3 (확장)
-10. AI 자동 장르/난이도 판단
-11. 데이터 백업/복구
-12. 대댓글 지원
+11. AI 자동 장르/난이도 판단
+12. 데이터 백업/복구
+13. 대댓글 지원
