@@ -317,5 +317,89 @@ cron.schedule('0 1 * * *', async () => {
 
 ---
 
+## 11. 세션 아이콘: SVG 세트 사용
+
+**결정일**: 2025-10-14
+
+### 결정 내용
+UI 통일성을 위해 기존 이모지 아이콘 대신, 선으로 디자인된 SVG 아이콘 세트를 사용한다.
+
+### 아이콘 세트
+- **보컬 (Vocal)**
+  ```xml
+  <svg width="800px" height="800px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M12 15C14.2091 15 16 13.2091 16 11V6C16 3.79086 14.2091 2 12 2C9.79086 2 8 3.79086 8 6V11C8 13.2091 9.79086 15 12 15Z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M19 11V12C19 15.866 15.866 19 12 19C8.13401 19 5 15.866 5 12V11" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M12 19V22" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  ```
+- **기타 (Guitar)**
+  ```xml
+  <svg width="800px" height="800px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M15.152 2.664l-3.464 6.0l-1.732 3.0l-3.464 6.001l-2.598 4.5m2.598-4.5l2.598-4.5m-2.598 4.5h-1.732m1.732-9.0l1.732-3.0m-3.464 6.0l1.732-3.0m0 0l-5.196-9.002l-1.732 3.001l5.196 9.001M8.66 4.33l-1.732 3.001m11.258 1.499l-1.732 3.0m-1.732-3.0l1.732-3.001m3.464 6.001l-1.732 3.0m-1.732-3.0l1.732-3.0m-1.732 3.0l1.732 3.0m-5.196 9.0l1.732-3.001m-1.732 3.001l-1.732-3.001m3.464 0l1.732-3.001" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M8.66 4.33L19.918 6.497L21.65 9.498L10.392 7.33L8.66 4.33z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  ```
+- **베이스 (Bass)**
+  ```xml
+  <svg width="800px" height="800px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M14 12.5L15.5 11M14 9.5L15.5 8M14 6.5L15.5 5M10.042 20.998L4.002 15C2.814 13.812 2.713 12.068 3.454 10.533C4.073 9.243 5.33 8.43 6.738 8.43H9.5M10.042 20.998C10.015 21.55 9.55 22 9 22C8.45 22 8 21.553 7.973 21.002L10.042 20.998ZM10.042 20.998L10.5 3.5C10.5 2.672 11.172 2 12 2C12.828 2 13.5 2.672 13.5 3.5V20.5C13.5 21.328 12.828 22 12 22C11.172 22 10.5 21.328 10.5 20.5L10.042 20.998Z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  ```
+- **드럼 (Drums)**
+  ```xml
+  <svg width="800px" height="800px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M10 18L4 16M14 18L20 16M12 19V14M7 15.5C7 16.8807 9.23858 18 12 18C14.7614 18 17 16.8807 17 15.5M7 15.5V14.5C7 13.1193 9.23858 12 12 12C14.7614 12 17 13.1193 17 14.5V15.5M7 15.5C7 14.1193 9.23858 13 12 13C14.7614 13 17 14.1193 17 15.5M18 10L16 12M6 10L8 12" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  ```
+- **키보드 (Keyboard)**
+  ```xml
+  <svg width="800px" height="800px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M3 17V7C3 5.89543 3.89543 5 5 5H19C20.1046 5 21 5.89543 21 7V17C21 18.1046 20.1046 19 19 19H5C3.89543 19 3 18.1046 3 17Z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M7 14V10H6V14H7ZM11 14V10H10V14H11ZM15 14V10H14V14H15ZM18 14V10H17V14H18Z" fill="#000000" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  ```
+- **기타/미지정 (Other/Unassigned)**
+  ```xml
+  <svg width="800px" height="800px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M12 12C14.2091 12 16 10.2091 16 8C16 5.79086 14.2091 4 12 4C9.79086 4 8 5.79086 8 8C8 10.2091 9.79086 12 12 12Z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M20 21V19C20 16.7909 18.2091 15 16 15H8C5.79086 15 4 16.7909 4 19V21" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  ```
+
+### 근거
+- **UI 일관성**: 모든 아이콘의 스타일을 통일하여 전문적이고 깔끔한 인상을 준다.
+- **명확성**: 이모지보다 각 악기를 더 명확하게 표현한다.
+
+---
+
+## 12. 세션 이름 정책: MVP에서는 정규화 미적용
+
+**결정일**: 2025-10-14
+
+### 결정 내용
+세션 종류 중 '기타(직접입력)'을 통해 사용자가 입력하는 세션 이름을 MVP 단계에서는 별도의 정규화(normalization) 없이 그대로 저장한다.
+
+### 근거
+- **MVP 범위 단순화**: MVP 단계에서는 세션별 통계나 필터링 기능이 핵심이 아니므로, 복잡한 정규화 규칙을 적용하기보다 빠른 구현에 집중한다.
+- **사용자 자율성 존중**: '일렉기타', '어쿠스틱' 등 사용자가 원하는 구체적인 세션명을 그대로 표시하는 것이 사용자에게 더 많은 정보를 제공할 수 있다.
+- **추후 확장 가능**: 서비스가 고도화되어 세션 기반 기능이 필요해지면, 그때 가서 데이터 마이그레이션 및 정규화 전략을 수립해도 늦지 않다.
+
+---
+
+## 13. MVP 기능 축소: 네트워크 불안정 시 임시 저장 기능 제외
+
+**결정일**: 2025-10-14
+
+### 결정 내용
+'네트워크 불안정 시 입력값 임시 저장' 기능을 MVP(Phase 1) 범위에서 제외한다.
+
+### 근거
+- **구현 복잡도**: 사용자가 기능을 인지하고 자연스럽게 사용하게 만들기 위한 UI/UX까지 고려하면 MVP 단계에서 구현하기에는 다소 복잡하다고 판단.
+- **개발 속도**: 핵심 기능에 집중하여 빠른 MVP 출시를 위해, 부가적인 사용자 경험 향상 기능은 Phase 2 이후로 연기하는 것이 효율적임.
+- **요구사항 변경**: 최초 요구사항에 포함되어 있었으나, 논의 과정에서 복잡성을 인지하고 제외하기로 합의함.
+
+---
+
 ## 변경 이력
-- 2025-10-14: 초기 문서 작성
+- 2025-10-14: 초기 문서 작성, 대화 기반 요구사항 구체화 및 일부 기능 제외 결정
