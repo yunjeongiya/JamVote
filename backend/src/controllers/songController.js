@@ -96,57 +96,92 @@ async function getSongs(req, res, next) {
       return res.status(400).json({ error: 'jamId가 필요합니다' });
     }
     
-    // 곡 목록 조회
-    const songs = await Song.find({ jamId }).sort({ createdAt: -1 });
-    
-    // 각 곡의 투표 수 집계
-    const songsWithVotes = await Promise.all(
-      songs.map(async (song) => {
-        const votes = await Vote.find({ songId: song.songId });
-        const likesCount = votes.filter(v => v.type === 'like').length;
-        const impossibleCount = votes.filter(v => v.type === 'impossible').length;
-        
-        // 현재 사용자의 투표 상태 조회 (userName이 제공된 경우)
-        let userVote = null;
-        let userVoteId = null;
-        if (userName) {
-          const vote = votes.find(v => v.userName === userName);
-          if (vote) {
-            userVote = vote.type;
-            userVoteId = vote.voteId;
-          }
+    // MongoDB Aggregation Pipeline을 사용하여 N+1 쿼리 문제 해결
+    const pipeline = [
+      // 1. jamId로 필터링
+      { $match: { jamId } },
+      
+      // 2. Vote 컬렉션과 조인
+      {
+        $lookup: {
+          from: 'votes',
+          localField: 'songId',
+          foreignField: 'songId',
+          as: 'votes'
         }
-        
-        return {
-          songId: song.songId,
-          jamId: song.jamId,
-          proposerName: song.proposerName,
-          youtubeUrl: song.youtubeUrl,
-          youtubeVideoId: song.youtubeVideoId,
-          title: song.title,
-          artist: song.artist,
-          duration: song.duration,
-          thumbnailUrl: song.thumbnailUrl,
-          genre: song.genre,
-          requiredSessions: song.requiredSessions,
-          sessionDifficulties: song.sessionDifficulties,
-          allowEditByOthers: song.allowEditByOthers,
-          likesCount,
-          impossibleCount,
-          userVote,
-          userVoteId,
-          createdAt: song.createdAt,
-        };
-      })
-    );
-    
-    // 좋아요 수 내림차순 → 작성일 내림차순 정렬
-    songsWithVotes.sort((a, b) => {
-      if (b.likesCount !== a.likesCount) {
-        return b.likesCount - a.likesCount;
+      },
+      
+      // 3. 투표 집계 및 사용자 투표 추출
+      {
+        $addFields: {
+          likesCount: {
+            $size: {
+              $filter: {
+                input: '$votes',
+                as: 'vote',
+                cond: { $eq: ['$$vote.type', 'like'] }
+              }
+            }
+          },
+          impossibleCount: {
+            $size: {
+              $filter: {
+                input: '$votes',
+                as: 'vote',
+                cond: { $eq: ['$$vote.type', 'impossible'] }
+              }
+            }
+          },
+          userVoteData: userName ? {
+            $arrayElemAt: [
+              {
+                $filter: {
+                  input: '$votes',
+                  as: 'vote',
+                  cond: { $eq: ['$$vote.userName', userName] }
+                }
+              },
+              0
+            ]
+          } : null
+        }
+      },
+      
+      // 4. 좋아요 수 내림차순 → 작성일 내림차순 정렬
+      {
+        $sort: {
+          likesCount: -1,
+          createdAt: -1
+        }
+      },
+      
+      // 5. 필요한 필드만 선택 및 재구성
+      {
+        $project: {
+          _id: 0,
+          songId: 1,
+          jamId: 1,
+          proposerName: 1,
+          youtubeUrl: 1,
+          youtubeVideoId: 1,
+          title: 1,
+          artist: 1,
+          duration: 1,
+          thumbnailUrl: 1,
+          genre: 1,
+          requiredSessions: 1,
+          sessionDifficulties: 1,
+          allowEditByOthers: 1,
+          likesCount: 1,
+          impossibleCount: 1,
+          userVote: { $ifNull: ['$userVoteData.type', null] },
+          userVoteId: { $ifNull: ['$userVoteData.voteId', null] },
+          createdAt: 1
+        }
       }
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    });
+    ];
+    
+    const songsWithVotes = await Song.aggregate(pipeline);
     
     res.json({ songs: songsWithVotes });
   } catch (error) {

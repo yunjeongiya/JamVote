@@ -134,22 +134,49 @@ async function getVotes(req, res, next) {
       return res.status(404).json({ error: '곡을 찾을 수 없습니다' });
     }
     
-    // 투표 목록 조회
-    const votes = await Vote.find({ songId }).sort({ createdAt: 1 });
+    // MongoDB Aggregation Pipeline을 사용하여 N+1 쿼리 문제 해결
+    const pipeline = [
+      // 1. songId로 필터링
+      { $match: { songId } },
+      
+      // 2. 작성일 오름차순 정렬
+      { $sort: { createdAt: 1 } },
+      
+      // 3. User 컬렉션과 조인
+      {
+        $lookup: {
+          from: 'users',
+          let: { userName: '$userName', jamId: song.jamId },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$name', '$$userName'] },
+                    { $eq: ['$jamId', '$$jamId'] }
+                  ]
+                }
+              }
+            }
+          ],
+          as: 'userInfo'
+        }
+      },
+      
+      // 4. 필요한 필드만 선택
+      {
+        $project: {
+          _id: 0,
+          userName: 1,
+          sessions: { $ifNull: [{ $arrayElemAt: ['$userInfo.sessions', 0] }, []] },
+          type: 1,
+          reason: 1,
+          createdAt: 1
+        }
+      }
+    ];
     
-    // 사용자 정보와 함께 반환
-    const votesWithUsers = await Promise.all(
-      votes.map(async (vote) => {
-        const user = await User.findOne({ jamId: song.jamId, name: vote.userName });
-        return {
-          userName: vote.userName,
-          sessions: user ? user.sessions : [],
-          type: vote.type,
-          reason: vote.reason,
-          createdAt: vote.createdAt,
-        };
-      })
-    );
+    const votesWithUsers = await Vote.aggregate(pipeline);
     
     // 좋아요/불가능 분리
     const likes = votesWithUsers.filter(v => v.type === 'like').map(v => ({

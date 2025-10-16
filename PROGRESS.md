@@ -169,11 +169,28 @@
 
 ---
 
+### Day 22: 성능 최적화 (N+1 쿼리 해결)
+
+**진행 상황**: ✅ 완료
+
+#### 완료된 작업
+- [x] songController.js: getSongs 함수 Aggregation Pipeline 최적화
+- [x] voteController.js: getVotes 함수 Aggregation Pipeline 최적화
+- [x] MongoDB $lookup을 사용한 조인 쿼리로 변경
+- [x] N+1 쿼리 문제 완전 해결 (Promise.all + map 제거)
+
+**개선 사항**:
+- 기존: 각 곡/투표마다 개별 쿼리 실행 (O(n) 쿼리)
+- 개선: 한 번의 Aggregation Pipeline으로 처리 (O(1) 쿼리)
+- 성능 향상: 곡/투표가 많을수록 효과 극대화
+
+---
+
 ## 🎉 프로젝트 완료!
 
-**전체 개발 기간**: Day 1 ~ Day 21
-**총 커밋 수**: 15+ commits
-**완성도**: MVP 100% + 추가 기능
+**전체 개발 기간**: Day 1 ~ Day 22
+**총 커밋 수**: 17+ commits
+**완성도**: MVP 100% + 추가 기능 + 성능 최적화
 
 ### 완성된 기능 목록
 
@@ -203,6 +220,7 @@
 - bcrypt 비밀번호 보안
 - Mongoose 데이터 모델링
 - Tailwind CSS 스타일링
+- MongoDB Aggregation Pipeline (N+1 쿼리 최적화)
 
 ### 배포 준비 상태
 
