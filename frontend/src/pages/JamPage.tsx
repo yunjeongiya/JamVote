@@ -70,6 +70,14 @@ export default function JamPage() {
       invalidateVoteCache(songId);
       queryClient.invalidateQueries({ queryKey: ['songs', jamId] });
     },
+    onCommentCreated: ({ songId }) => {
+      // 해당 곡의 댓글 목록 갱신
+      queryClient.invalidateQueries({ queryKey: ['comments', songId] });
+    },
+    onCommentDeleted: ({ songId }) => {
+      // 해당 곡의 댓글 목록 갱신
+      queryClient.invalidateQueries({ queryKey: ['comments', songId] });
+    },
   });
   
   const invalidateVoteCache = (songId: string) => {

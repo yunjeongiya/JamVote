@@ -6,6 +6,7 @@ import { VoteButton } from './VoteButton';
 import { SessionBadge } from './SessionBadge';
 import { YouTubePlayer } from './YouTubePlayer';
 import { VoteResults } from './VoteResults';
+import { CommentSection } from '../comment/CommentSection';
 import { Button } from '../common/Button';
 import { Loading } from '../common/Loading';
 
@@ -147,6 +148,14 @@ export function SongCard({
               )}
             </div>
           )}
+          
+          {/* 댓글 섹션 */}
+          <div className="border-t border-gray-700 pt-4">
+            <CommentSection
+              songId={song.songId}
+              currentUserName={currentUserName}
+            />
+          </div>
           
           {/* 수정/삭제 버튼 */}
           <div className="flex items-center space-x-2">

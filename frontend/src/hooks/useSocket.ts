@@ -13,6 +13,8 @@ interface UseSocketOptions {
   onVoteCreated?: (data: any) => void;
   onVoteChanged?: (data: any) => void;
   onVoteDeleted?: (data: any) => void;
+  onCommentCreated?: (data: any) => void;
+  onCommentDeleted?: (data: any) => void;
 }
 
 export function useSocket(options: UseSocketOptions) {
@@ -25,6 +27,8 @@ export function useSocket(options: UseSocketOptions) {
     onVoteCreated,
     onVoteChanged,
     onVoteDeleted,
+    onCommentCreated,
+    onCommentDeleted,
   } = options;
   
   useEffect(() => {
@@ -64,6 +68,14 @@ export function useSocket(options: UseSocketOptions) {
       socket.on('voteDeleted', onVoteDeleted);
     }
     
+    if (onCommentCreated) {
+      socket.on('commentCreated', onCommentCreated);
+    }
+    
+    if (onCommentDeleted) {
+      socket.on('commentDeleted', onCommentDeleted);
+    }
+    
     // 연결 성공
     socket.on('connect', () => {
       console.log('Socket.io connected');
@@ -83,6 +95,8 @@ export function useSocket(options: UseSocketOptions) {
       socket.off('voteCreated');
       socket.off('voteChanged');
       socket.off('voteDeleted');
+      socket.off('commentCreated');
+      socket.off('commentDeleted');
       socket.off('connect');
       socket.off('disconnect');
       socket.disconnect();
@@ -95,6 +109,8 @@ export function useSocket(options: UseSocketOptions) {
     onVoteCreated,
     onVoteChanged,
     onVoteDeleted,
+    onCommentCreated,
+    onCommentDeleted,
   ]);
   
   return socketRef.current;

@@ -33,6 +33,7 @@ function createApp(io) {
   app.use('/api/users', require('./routes/user'));
   app.use('/api/songs', require('./routes/song'));
   app.use('/api/votes', require('./routes/vote'));
+  app.use('/api/comments', require('./routes/comment'));
   app.use('/api/youtube', require('./routes/youtube'));
   // app.use('/api/comments', require('./routes/comment'));
   // app.use('/api/feedback', require('./routes/feedback'));

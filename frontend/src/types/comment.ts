@@ -3,21 +3,15 @@
 export interface Comment {
   commentId: string;
   songId: string;
-  writerName: string;
-  sessionInfo: string[];
+  userName: string;
+  sessions: string[]; // User's sessions
   content: string;
   createdAt: Date;
 }
 
 export interface CommentCreateRequest {
   songId: string;
-  writerName: string;
-  sessionInfo: string[];
-  content: string;
-}
-
-export interface CommentUpdateRequest {
-  writerName: string;
+  userName: string;
   content: string;
 }
 
