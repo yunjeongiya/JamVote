@@ -72,18 +72,40 @@
 
 ---
 
+#### Day 8-9: 곡 관리 백엔드
+- [x] Song API 구현 (컨트롤러, 라우터)
+  - [x] POST /api/songs (곡 추가)
+  - [x] GET /api/songs (목록 조회, 투표 수 집계)
+  - [x] GET /api/songs/:songId (상세 조회)
+  - [x] PATCH /api/songs/:songId (수정, 권한 체크)
+  - [x] DELETE /api/songs/:songId (삭제, Cascade)
+- [x] Vote API 구현 (컨트롤러, 라우터)
+  - [x] POST /api/votes (투표 생성/변경)
+  - [x] DELETE /api/votes/:voteId (투표 취소)
+  - [x] GET /api/votes?songId= (투표 목록, 세션 정보 포함)
+- [x] YouTube API 구현
+  - [x] GET /api/youtube/search (검색)
+  - [x] Fallback 임시 데이터 (API 키 없을 때)
+  - [x] ISO 8601 duration 파싱
+- [x] axios 설치
+- [x] API 라우터 연결
+- [x] Git 커밋 ✅
+
+---
+
 ## 🚧 진행 중인 작업
 
-Day 5-7: 프론트엔드 기본 화면 구현
+없음 (Day 8-9 완료!)
 
 ---
 
 ## 📝 다음 작업
 
-### Day 5-7 남은 작업
-- React Router 및 React Query 설정
-- 홈 페이지 구현
-- 로그인/프로필 생성 페이지 구현
+### Day 10-11: 곡 관리 프론트엔드
+- YouTube 검색 UI 구현
+- 곡 추가 모달
+- 곡 리스트 컴포넌트
+- 투표 버튼 UI
 
 ### 수동 작업 (테스트용)
 - MongoDB Atlas 계정 생성 및 설정
