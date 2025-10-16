@@ -23,8 +23,9 @@ function createApp() {
   // API 라우트
   app.use('/api/jams', require('./routes/jam'));
   app.use('/api/users', require('./routes/user'));
-  // app.use('/api/songs', require('./routes/song'));
-  // app.use('/api/votes', require('./routes/vote'));
+  app.use('/api/songs', require('./routes/song'));
+  app.use('/api/votes', require('./routes/vote'));
+  app.use('/api/youtube', require('./routes/youtube'));
   // app.use('/api/comments', require('./routes/comment'));
   // app.use('/api/feedback', require('./routes/feedback'));
   
