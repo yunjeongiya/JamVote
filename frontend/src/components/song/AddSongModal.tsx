@@ -38,12 +38,12 @@ export function AddSongModal({
   const [allowEditByOthers, setAllowEditByOthers] = useState(true);
   
   // 선택된 비디오가 변경되면 초기값 설정
-  useState(() => {
+  useEffect(() => {
     if (selectedVideo) {
       setTitle(selectedVideo.title);
       setArtist(selectedVideo.channelTitle);
     }
-  });
+  }, [selectedVideo]);
   
   const handleSessionToggle = (session: string) => {
     if (requiredSessions.includes(session)) {
