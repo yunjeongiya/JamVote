@@ -9,6 +9,7 @@ import { useSongs, useCreateSong, useUpdateSong, useDeleteSong } from '../hooks/
 import { useCreateVote, useDeleteVote } from '../hooks/useVotes';
 import { updateUser } from '../api/user';
 import { updateJamExpiry } from '../api/jam';
+import { createFeedback } from '../api/feedback';
 import { useYouTubeSearch } from '../hooks/useYouTube';
 import { useSocket } from '../hooks/useSocket';
 import { getVotes } from '../api/vote';
@@ -21,6 +22,8 @@ import { ImpossibleReasonModal } from '../components/song/ImpossibleReasonModal'
 import { SongList } from '../components/song/SongList';
 import { ProfileEditModal } from '../components/user/ProfileEditModal';
 import { JamExpiryModal } from '../components/jam/JamExpiryModal';
+import { FloatingFeedbackButton } from '../components/feedback/FloatingFeedbackButton';
+import { FeedbackModal } from '../components/feedback/FeedbackModal';
 import type { YouTubeSearchResult, Song, VoteResults } from '../types';
 
 export default function JamPage() {
@@ -37,8 +40,10 @@ export default function JamPage() {
   const [voteResultsCache, setVoteResultsCache] = useState<Record<string, VoteResults>>({});
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isExpiryModalOpen, setIsExpiryModalOpen] = useState(false);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [isUpdatingExpiry, setIsUpdatingExpiry] = useState(false);
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   
   const auth = jamId ? getAuth(jamId) : null;
   
@@ -307,6 +312,30 @@ export default function JamPage() {
     }
   };
   
+  const handleFeedbackSubmit = async (data: {
+    rating: number;
+    content: string;
+    contactInfo: string;
+  }) => {
+    setIsSubmittingFeedback(true);
+    try {
+      const response = await createFeedback({
+        jamId,
+        userName: auth?.userName,
+        rating: data.rating,
+        content: data.content,
+        contactInfo: data.contactInfo,
+      });
+      
+      setIsFeedbackModalOpen(false);
+      alert(response.message || '피드백이 전송되었습니다. 감사합니다!');
+    } catch (error: any) {
+      alert(error.response?.data?.error || '피드백 전송에 실패했습니다');
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
+  
   if (jamLoading || !auth) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -482,6 +511,19 @@ export default function JamPage() {
             isSubmitting={isUpdatingExpiry}
           />
         )}
+        
+        {/* 피드백 모달 */}
+        <FeedbackModal
+          isOpen={isFeedbackModalOpen}
+          onClose={() => setIsFeedbackModalOpen(false)}
+          jamId={jamId}
+          userName={auth?.userName}
+          onSubmit={handleFeedbackSubmit}
+          isSubmitting={isSubmittingFeedback}
+        />
+        
+        {/* 플로팅 피드백 버튼 */}
+        <FloatingFeedbackButton onClick={() => setIsFeedbackModalOpen(true)} />
       </div>
     </div>
   );

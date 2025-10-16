@@ -141,6 +141,13 @@
 - [x] 만료 임박 알림 (1일 이하: 경고, 3일 이하: 주의)
 - [x] localStorage 자동 업데이트
 
+### Day 18: 피드백 시스템 ✅
+- [x] Feedback 모델 및 API
+- [x] FeedbackModal 컴포넌트 (별점 1~5, 피드백 내용, 연락처)
+- [x] FloatingFeedbackButton (플로팅 버튼)
+- [x] 개발자 연락처 표시
+- [x] JamPage에 통합
+
 ### 수동 작업 (테스트용)
 - MongoDB Atlas 계정 생성 및 설정
 - 환경 변수 실제 값 설정 (.env 파일 생성)

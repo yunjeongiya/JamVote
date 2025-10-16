@@ -35,8 +35,7 @@ function createApp(io) {
   app.use('/api/votes', require('./routes/vote'));
   app.use('/api/comments', require('./routes/comment'));
   app.use('/api/youtube', require('./routes/youtube'));
-  // app.use('/api/comments', require('./routes/comment'));
-  // app.use('/api/feedback', require('./routes/feedback'));
+  app.use('/api/feedback', require('./routes/feedback'));
   
   // 404 핸들러
   app.use((req, res) => {
