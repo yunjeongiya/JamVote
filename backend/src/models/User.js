@@ -12,10 +12,6 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  normalizedName: {
-    type: String,
-    required: true,
-  },
   passwordHash: {
     type: String,
     default: null,
@@ -30,8 +26,8 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-// 방 내 중복 방지 (jamId + normalizedName 조합 유니크)
-userSchema.index({ jamId: 1, normalizedName: 1 }, { unique: true });
+// 방 내 중복 방지 (jamId + name 조합 유니크)
+userSchema.index({ jamId: 1, name: 1 }, { unique: true });
 
 module.exports = mongoose.model('User', userSchema);
 

@@ -3,7 +3,6 @@
 const bcrypt = require('bcrypt');
 const User = require('../models/User');
 const Jam = require('../models/Jam');
-const { normalizeUsername } = require('../utils/normalize');
 
 /**
  * 프로필 생성 (회원가입)
@@ -24,11 +23,16 @@ async function createUser(req, res, next) {
       return res.status(410).json({ error: '유효기한이 지난 방입니다' });
     }
     
-    // 이름 정규화
-    const normalizedName = normalizeUsername(name);
+    // 이름 정리 (공백 제거)
+    const trimmedName = name.trim();
+    
+    // 공백 검증
+    if (/\s/.test(trimmedName)) {
+      return res.status(400).json({ error: '이름에 공백을 포함할 수 없습니다' });
+    }
     
     // 중복 체크
-    const existingUser = await User.findOne({ jamId, normalizedName });
+    const existingUser = await User.findOne({ jamId, name: trimmedName });
     if (existingUser) {
       return res.status(409).json({ error: '이미 사용 중인 이름입니다' });
     }
@@ -42,8 +46,7 @@ async function createUser(req, res, next) {
     // 사용자 생성
     const user = await User.create({
       jamId,
-      name: name.trim(),
-      normalizedName,
+      name: trimmedName,
       passwordHash,
       sessions: sessions || [],
     });
@@ -76,11 +79,11 @@ async function loginUser(req, res, next) {
       return res.status(410).json({ error: '유효기한이 지난 방입니다' });
     }
     
-    // 이름 정규화
-    const normalizedName = normalizeUsername(name);
+    // 이름 정리
+    const trimmedName = name.trim();
     
     // 사용자 찾기
-    const user = await User.findOne({ jamId, normalizedName });
+    const user = await User.findOne({ jamId, name: trimmedName });
     if (!user) {
       return res.status(404).json({ error: '존재하지 않는 사용자입니다' });
     }
@@ -116,8 +119,7 @@ async function updateUser(req, res, next) {
     const { newName, sessions } = req.body;
     
     // 기존 사용자 찾기
-    const normalizedOldName = normalizeUsername(userName);
-    const user = await User.findOne({ jamId, normalizedName: normalizedOldName });
+    const user = await User.findOne({ jamId, name: userName });
     
     if (!user) {
       return res.status(404).json({ error: '존재하지 않는 사용자입니다' });
@@ -125,19 +127,23 @@ async function updateUser(req, res, next) {
     
     // 이름 변경 시 중복 체크
     if (newName && newName.trim() !== user.name) {
-      const normalizedNewName = normalizeUsername(newName);
+      const trimmedNewName = newName.trim();
+      
+      // 공백 검증
+      if (/\s/.test(trimmedNewName)) {
+        return res.status(400).json({ error: '이름에 공백을 포함할 수 없습니다' });
+      }
       
       const existingUser = await User.findOne({
         jamId,
-        normalizedName: normalizedNewName,
+        name: trimmedNewName,
       });
       
       if (existingUser) {
         return res.status(409).json({ error: '이미 사용 중인 이름입니다' });
       }
       
-      user.name = newName.trim();
-      user.normalizedName = normalizedNewName;
+      user.name = trimmedNewName;
     }
     
     // 세션 변경

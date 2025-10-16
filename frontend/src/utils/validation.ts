@@ -8,11 +8,19 @@ export function isValidJamId(jamId: string): boolean {
 }
 
 /**
- * 사용자 이름 유효성 검증
+ * 사용자 이름 유효성 검증 (공백 불가)
  */
 export function isValidUsername(name: string): boolean {
   const trimmed = name.trim();
-  return trimmed.length >= 1 && trimmed.length <= 20;
+  // 길이 체크 및 공백 포함 여부 체크
+  return trimmed.length >= 1 && trimmed.length <= 20 && !/\s/.test(trimmed);
+}
+
+/**
+ * 이름에서 공백 제거
+ */
+export function removeSpaces(name: string): string {
+  return name.replace(/\s/g, '');
 }
 
 /**

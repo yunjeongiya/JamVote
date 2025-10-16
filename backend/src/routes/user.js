@@ -12,7 +12,12 @@ router.post(
   '/',
   [
     body('jamId').isString().trim().isLength({ min: 6, max: 6 }),
-    body('name').isString().trim().isLength({ min: 1, max: 20 }),
+    body('name')
+      .isString()
+      .trim()
+      .isLength({ min: 1, max: 20 })
+      .matches(/^\S+$/)
+      .withMessage('이름에 공백을 포함할 수 없습니다'),
     body('password').optional().isString().isLength({ min: 4, max: 50 }),
     body('sessions').optional().isArray(),
   ],
@@ -25,7 +30,12 @@ router.post(
   '/login',
   [
     body('jamId').isString().trim().isLength({ min: 6, max: 6 }),
-    body('name').isString().trim().isLength({ min: 1, max: 20 }),
+    body('name')
+      .isString()
+      .trim()
+      .isLength({ min: 1, max: 20 })
+      .matches(/^\S+$/)
+      .withMessage('이름에 공백을 포함할 수 없습니다'),
     body('password').optional().isString(),
   ],
   validate,
@@ -36,7 +46,13 @@ router.post(
 router.patch(
   '/:jamId/:userName',
   [
-    body('newName').optional().isString().trim().isLength({ min: 1, max: 20 }),
+    body('newName')
+      .optional()
+      .isString()
+      .trim()
+      .isLength({ min: 1, max: 20 })
+      .matches(/^\S+$/)
+      .withMessage('이름에 공백을 포함할 수 없습니다'),
     body('sessions').optional().isArray(),
   ],
   validate,
