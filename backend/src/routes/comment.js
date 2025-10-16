@@ -3,6 +3,7 @@
 const express = require('express');
 const { body, query } = require('express-validator');
 const validate = require('../middleware/validate');
+const { commentLimiter } = require('../middleware/rateLimiter');
 const {
   createComment,
   getComments,
@@ -14,6 +15,7 @@ const router = express.Router();
 // 댓글 작성
 router.post(
   '/',
+  commentLimiter,
   [
     body('songId').isString().notEmpty(),
     body('userName').isString().trim().notEmpty(),
@@ -40,6 +42,7 @@ router.get(
 // 댓글 삭제
 router.delete(
   '/:commentId',
+  commentLimiter,
   [
     query('userName').isString().notEmpty(),
     validate,
@@ -48,4 +51,5 @@ router.delete(
 );
 
 module.exports = router;
+
 

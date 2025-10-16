@@ -3,6 +3,7 @@
 const express = require('express');
 const { body, query } = require('express-validator');
 const { validate } = require('../middleware/validate');
+const { voteLimiter } = require('../middleware/rateLimiter');
 const voteController = require('../controllers/voteController');
 
 const router = express.Router();
@@ -10,6 +11,7 @@ const router = express.Router();
 // 투표 생성/변경
 router.post(
   '/',
+  voteLimiter,
   [
     body('songId').isString().trim(),
     body('userName').isString().trim().isLength({ min: 1, max: 20 }),
@@ -21,7 +23,7 @@ router.post(
 );
 
 // 투표 취소
-router.delete('/:voteId', voteController.deleteVote);
+router.delete('/:voteId', voteLimiter, voteController.deleteVote);
 
 // 특정 곡의 투표 목록 조회
 router.get(

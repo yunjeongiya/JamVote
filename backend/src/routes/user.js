@@ -3,6 +3,7 @@
 const express = require('express');
 const { body } = require('express-validator');
 const { validate } = require('../middleware/validate');
+const { authLimiter } = require('../middleware/rateLimiter');
 const userController = require('../controllers/userController');
 
 const router = express.Router();
@@ -10,6 +11,7 @@ const router = express.Router();
 // 프로필 생성
 router.post(
   '/',
+  authLimiter,
   [
     body('jamId').isString().trim().isLength({ min: 6, max: 6 }),
     body('name')
@@ -28,6 +30,7 @@ router.post(
 // 로그인
 router.post(
   '/login',
+  authLimiter,
   [
     body('jamId').isString().trim().isLength({ min: 6, max: 6 }),
     body('name')

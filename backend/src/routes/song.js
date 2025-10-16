@@ -3,6 +3,7 @@
 const express = require('express');
 const { body, query } = require('express-validator');
 const { validate } = require('../middleware/validate');
+const { songCreateLimiter, generalLimiter } = require('../middleware/rateLimiter');
 const songController = require('../controllers/songController');
 
 const router = express.Router();
@@ -10,6 +11,7 @@ const router = express.Router();
 // 곡 추가
 router.post(
   '/',
+  songCreateLimiter,
   [
     body('jamId').isString().trim().isLength({ min: 6, max: 6 }),
     body('proposerName').isString().trim().isLength({ min: 1, max: 20 }),
@@ -41,6 +43,7 @@ router.get('/:songId', songController.getSong);
 // 곡 수정
 router.patch(
   '/:songId',
+  generalLimiter,
   [
     body('userName').isString().trim().isLength({ min: 1, max: 20 }),
     body('title').optional().isString().trim().isLength({ min: 1, max: 200 }),
