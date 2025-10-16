@@ -1,6 +1,6 @@
 // 곡 리스트 컴포넌트
 
-import type { Song } from '../../types';
+import type { Song, VoteResults } from '../../types';
 import { SongCard } from './SongCard';
 import { Loading } from '../common/Loading';
 
@@ -12,6 +12,8 @@ interface SongListProps {
   onEdit?: (song: Song) => void;
   onDelete?: (songId: string) => void;
   getUserVoteType?: (songId: string) => 'like' | 'impossible' | null;
+  getVoteResults?: (songId: string) => VoteResults | undefined;
+  isLoadingVotes?: (songId: string) => boolean;
 }
 
 export function SongList({
@@ -22,6 +24,8 @@ export function SongList({
   onEdit,
   onDelete,
   getUserVoteType,
+  getVoteResults,
+  isLoadingVotes,
 }: SongListProps) {
   if (isLoading) {
     return (
@@ -51,6 +55,8 @@ export function SongList({
           onEdit={onEdit}
           onDelete={onDelete}
           userVoteType={getUserVoteType ? getUserVoteType(song.songId) : null}
+          voteResults={getVoteResults ? getVoteResults(song.songId) : undefined}
+          isLoadingVotes={isLoadingVotes ? isLoadingVotes(song.songId) : false}
         />
       ))}
     </div>

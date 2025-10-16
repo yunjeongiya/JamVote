@@ -5,15 +5,18 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getJam } from '../api/jam';
 import { getAuth } from '../utils/storage';
-import { useSongs, useCreateSong } from '../hooks/useSongs';
+import { useSongs, useCreateSong, useUpdateSong, useDeleteSong } from '../hooks/useSongs';
 import { useCreateVote } from '../hooks/useVotes';
 import { useYouTubeSearch } from '../hooks/useYouTube';
+import { getVotes } from '../api/vote';
 import { Loading } from '../components/common/Loading';
 import { SongSearchBar } from '../components/song/SongSearchBar';
 import { YouTubeSearchResultItem } from '../components/song/YouTubeSearchResult';
 import { AddSongModal } from '../components/song/AddSongModal';
+import { EditSongModal } from '../components/song/EditSongModal';
+import { ImpossibleReasonModal } from '../components/song/ImpossibleReasonModal';
 import { SongList } from '../components/song/SongList';
-import type { YouTubeSearchResult } from '../types';
+import type { YouTubeSearchResult, Song, VoteResults } from '../types';
 
 export default function JamPage() {
   const { jamId } = useParams<{ jamId: string }>();
@@ -21,7 +24,11 @@ export default function JamPage() {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedVideo, setSelectedVideo] = useState<YouTubeSearchResult | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingSong, setEditingSong] = useState<Song | null>(null);
+  const [impossibleVoteSongId, setImpossibleVoteSongId] = useState<string | null>(null);
+  const [expandedSongIds, setExpandedSongIds] = useState<Set<string>>(new Set());
+  const [voteResultsCache, setVoteResultsCache] = useState<Record<string, VoteResults>>({});
   
   const auth = jamId ? getAuth(jamId) : null;
   
@@ -45,22 +52,38 @@ export default function JamPage() {
   // YouTube 검색
   const { data: searchResults } = useYouTubeSearch(searchQuery);
   
-  // 곡 추가 mutation
+  // 곡 mutations
   const createSongMutation = useCreateSong(jamId!);
+  const updateSongMutation = useUpdateSong(jamId!);
+  const deleteSongMutation = useDeleteSong(jamId!);
   
   // 투표 mutation
   const createVoteMutation = useCreateVote(jamId!);
   
+  // 펼쳐진 곡의 투표 결과 로드
+  useEffect(() => {
+    expandedSongIds.forEach(async (songId) => {
+      if (!voteResultsCache[songId]) {
+        try {
+          const results = await getVotes(songId);
+          setVoteResultsCache(prev => ({ ...prev, [songId]: results }));
+        } catch (error) {
+          console.error('Failed to load votes:', error);
+        }
+      }
+    });
+  }, [expandedSongIds, voteResultsCache]);
+  
   const handleVideoSelect = (video: YouTubeSearchResult) => {
     setSelectedVideo(video);
-    setIsModalOpen(true);
+    setIsAddModalOpen(true);
     setSearchQuery(''); // 검색 초기화
   };
   
   const handleAddSong = async (data: any) => {
     try {
       await createSongMutation.mutateAsync(data);
-      setIsModalOpen(false);
+      setIsAddModalOpen(false);
       setSelectedVideo(null);
       alert('곡이 추가되었습니다!');
     } catch (error: any) {
@@ -68,15 +91,98 @@ export default function JamPage() {
     }
   };
   
+  const handleEditSong = async (data: any) => {
+    if (!editingSong || !auth) return;
+    
+    try {
+      await updateSongMutation.mutateAsync({
+        songId: editingSong.songId,
+        data: {
+          ...data,
+          userName: auth.userName,
+        },
+      });
+      setEditingSong(null);
+      alert('곡이 수정되었습니다!');
+      // 투표 결과 캐시 무효화
+      setVoteResultsCache(prev => {
+        const newCache = { ...prev };
+        delete newCache[editingSong.songId];
+        return newCache;
+      });
+    } catch (error: any) {
+      alert(error.response?.data?.error || '곡 수정에 실패했습니다');
+    }
+  };
+  
+  const handleDeleteSong = async (songId: string) => {
+    if (!auth) return;
+    
+    try {
+      await deleteSongMutation.mutateAsync({
+        songId,
+        userName: auth.userName,
+      });
+      alert('곡이 삭제되었습니다!');
+      // 투표 결과 캐시에서 제거
+      setVoteResultsCache(prev => {
+        const newCache = { ...prev };
+        delete newCache[songId];
+        return newCache;
+      });
+      setExpandedSongIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(songId);
+        return newSet;
+      });
+    } catch (error: any) {
+      alert(error.response?.data?.error || '곡 삭제에 실패했습니다');
+    }
+  };
+  
   const handleVote = async (songId: string, type: 'like' | 'impossible') => {
     if (!auth) return;
     
-    // TODO: 현재 투표 상태 확인해서 같은 타입이면 취소, 다르면 변경
+    // 불가능 투표는 이유 입력 모달 표시
+    if (type === 'impossible') {
+      setImpossibleVoteSongId(songId);
+      return;
+    }
+    
+    // 좋아요 투표
     try {
       await createVoteMutation.mutateAsync({
         songId,
         userName: auth.userName,
         type,
+      });
+      // 투표 결과 캐시 무효화
+      setVoteResultsCache(prev => {
+        const newCache = { ...prev };
+        delete newCache[songId];
+        return newCache;
+      });
+    } catch (error: any) {
+      alert(error.response?.data?.error || '투표에 실패했습니다');
+    }
+  };
+  
+  const handleImpossibleVote = async (reason: string) => {
+    if (!impossibleVoteSongId || !auth) return;
+    
+    try {
+      await createVoteMutation.mutateAsync({
+        songId: impossibleVoteSongId,
+        userName: auth.userName,
+        type: 'impossible',
+        reason,
+      });
+      setImpossibleVoteSongId(null);
+      // 투표 결과 캐시 무효화
+      setVoteResultsCache(prev => {
+        const newCache = { ...prev };
+        delete newCache[impossibleVoteSongId];
+        return newCache;
       });
     } catch (error: any) {
       alert(error.response?.data?.error || '투표에 실패했습니다');
@@ -156,14 +262,18 @@ export default function JamPage() {
             isLoading={songsLoading}
             currentUserName={auth.userName}
             onVote={handleVote}
+            onEdit={setEditingSong}
+            onDelete={handleDeleteSong}
+            getVoteResults={(songId) => voteResultsCache[songId]}
+            isLoadingVotes={(songId) => expandedSongIds.has(songId) && !voteResultsCache[songId]}
           />
         </div>
         
         {/* 곡 추가 모달 */}
         <AddSongModal
-          isOpen={isModalOpen}
+          isOpen={isAddModalOpen}
           onClose={() => {
-            setIsModalOpen(false);
+            setIsAddModalOpen(false);
             setSelectedVideo(null);
           }}
           selectedVideo={selectedVideo}
@@ -171,6 +281,25 @@ export default function JamPage() {
           jamId={jamId!}
           onSubmit={handleAddSong}
           isSubmitting={createSongMutation.isPending}
+        />
+        
+        {/* 곡 수정 모달 */}
+        {editingSong && (
+          <EditSongModal
+            isOpen={!!editingSong}
+            onClose={() => setEditingSong(null)}
+            song={editingSong}
+            onSubmit={handleEditSong}
+            isSubmitting={updateSongMutation.isPending}
+          />
+        )}
+        
+        {/* 불가능 투표 이유 모달 */}
+        <ImpossibleReasonModal
+          isOpen={!!impossibleVoteSongId}
+          onClose={() => setImpossibleVoteSongId(null)}
+          onSubmit={handleImpossibleVote}
+          isSubmitting={createVoteMutation.isPending}
         />
       </div>
     </div>

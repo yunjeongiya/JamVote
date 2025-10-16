@@ -1,11 +1,13 @@
 // 곡 카드 컴포넌트
 
 import { useState } from 'react';
-import type { Song } from '../../types';
+import type { Song, VoteResults as VoteResultsType } from '../../types';
 import { VoteButton } from './VoteButton';
 import { SessionBadge } from './SessionBadge';
 import { YouTubePlayer } from './YouTubePlayer';
+import { VoteResults } from './VoteResults';
 import { Button } from '../common/Button';
+import { Loading } from '../common/Loading';
 
 interface SongCardProps {
   song: Song;
@@ -14,6 +16,8 @@ interface SongCardProps {
   onEdit?: (song: Song) => void;
   onDelete?: (songId: string) => void;
   userVoteType?: 'like' | 'impossible' | null;
+  voteResults?: VoteResultsType;
+  isLoadingVotes?: boolean;
 }
 
 export function SongCard({
@@ -23,11 +27,19 @@ export function SongCard({
   onEdit,
   onDelete,
   userVoteType,
+  voteResults,
+  isLoadingVotes,
 }: SongCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   
   const canEdit = song.allowEditByOthers || song.proposerName === currentUserName;
   const canDelete = song.proposerName === currentUserName;
+  
+  const handleDelete = () => {
+    if (window.confirm('정말 이 곡을 삭제하시겠습니까?')) {
+      onDelete?.(song.songId);
+    }
+  };
   
   return (
     <div className="bg-gray-900 rounded-lg border border-gray-800 overflow-hidden">
@@ -119,6 +131,23 @@ export function SongCard({
             </div>
           )}
           
+          {/* 투표 결과 */}
+          {voteResults && (
+            <div>
+              <h4 className="text-sm font-semibold text-gray-300 mb-3">투표 결과</h4>
+              {isLoadingVotes ? (
+                <div className="flex justify-center py-4">
+                  <Loading size="sm" />
+                </div>
+              ) : (
+                <VoteResults
+                  likes={voteResults.likes}
+                  impossibles={voteResults.impossibles}
+                />
+              )}
+            </div>
+          )}
+          
           {/* 수정/삭제 버튼 */}
           <div className="flex items-center space-x-2">
             {canEdit && onEdit && (
@@ -127,7 +156,7 @@ export function SongCard({
               </Button>
             )}
             {canDelete && onDelete && (
-              <Button size="sm" variant="danger" onClick={() => onDelete(song.songId)}>
+              <Button size="sm" variant="danger" onClick={handleDelete}>
                 삭제
               </Button>
             )}
