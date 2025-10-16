@@ -91,21 +91,43 @@
 - [x] API 라우터 연결
 - [x] Git 커밋 ✅
 
+#### Day 10-11: 곡 관리 프론트엔드
+- [x] Hooks 구현
+  - [x] useSongs (CRUD)
+  - [x] useVotes (투표 관리)
+  - [x] useYouTube (검색, 디바운싱)
+- [x] Song 컴포넌트 구현 (9개)
+  - [x] YouTubePlayer (임베드)
+  - [x] VoteButton (좋아요/불가능)
+  - [x] SessionBadge (세션 아이콘)
+  - [x] DifficultySlider (난이도 슬라이더)
+  - [x] SongCard (곡 카드, 펼치기)
+  - [x] SongList (곡 목록)
+  - [x] YouTubeSearchResult (검색 결과)
+  - [x] SongSearchBar (검색 바)
+  - [x] AddSongModal (곡 추가 모달)
+- [x] JamPage 통합
+  - [x] YouTube 검색 통합
+  - [x] 곡 리스트 표시
+  - [x] 투표 기능
+  - [x] 곡 추가 워크플로우
+- [x] Git 커밋 ✅
+
 ---
 
 ## 🚧 진행 중인 작업
 
-없음 (Day 8-9 완료!)
+없음 (Day 10-11 완료!)
 
 ---
 
 ## 📝 다음 작업
 
-### Day 10-11: 곡 관리 프론트엔드
-- YouTube 검색 UI 구현
-- 곡 추가 모달
-- 곡 리스트 컴포넌트
-- 투표 버튼 UI
+### Day 12-13: 투표 및 실시간 기능
+- 투표 취소 기능
+- 투표 결과 상세 표시
+- Socket.io 실시간 동기화
+- 곡 수정/삭제 기능
 
 ### 수동 작업 (테스트용)
 - MongoDB Atlas 계정 생성 및 설정
