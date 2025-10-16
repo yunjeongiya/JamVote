@@ -64,10 +64,11 @@
 #### Day 5-7: 프론트엔드 기본 구조
 - [x] 세션 아이콘 SVG 컴포넌트
 - [x] 공통 UI 컴포넌트 (Button, Input, Modal, Toast 등)
-- [ ] React Router 설정
-- [ ] React Query 설정
-- [ ] 홈 페이지 (방 생성/접속)
-- [ ] 로그인 페이지 (프로필 생성)
+- [x] React Router 설정
+- [x] React Query 설정
+- [x] 홈 페이지 (방 생성/접속)
+- [x] 로그인 페이지 (프로필 생성)
+- [x] 방 페이지 스켈레톤
 
 ---
 
