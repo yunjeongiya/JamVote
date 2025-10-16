@@ -20,9 +20,9 @@ function createApp() {
     res.json({ status: 'ok', timestamp: new Date() });
   });
   
-  // API 라우트 (추후 추가)
-  // app.use('/api/jams', require('./routes/jam'));
-  // app.use('/api/users', require('./routes/user'));
+  // API 라우트
+  app.use('/api/jams', require('./routes/jam'));
+  app.use('/api/users', require('./routes/user'));
   // app.use('/api/songs', require('./routes/song'));
   // app.use('/api/votes', require('./routes/vote'));
   // app.use('/api/comments', require('./routes/comment'));
