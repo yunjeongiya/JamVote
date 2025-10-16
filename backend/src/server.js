@@ -5,6 +5,7 @@ const http = require('http');
 const createApp = require('./app');
 const connectDB = require('./config/db');
 const { setupSocket } = require('./config/socket');
+const { startCleanupJob } = require('./jobs/cleanup');
 
 const PORT = process.env.PORT || 5000;
 
@@ -22,6 +23,10 @@ async function startServer() {
     
     // Express 앱 생성 (io를 전달)
     const app = createApp(io);
+    
+    // 크론 잡 시작 (만료된 방 자동 삭제)
+    startCleanupJob();
+    console.log('Cleanup cron job initialized');
     
     // Express를 HTTP 서버에 연결
     server.on('request', app);
