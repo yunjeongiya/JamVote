@@ -56,7 +56,7 @@ async function createSong(req, res, next) {
       allowEditByOthers: allowEditByOthers !== undefined ? allowEditByOthers : true,
     });
     
-    res.status(201).json({
+    const responseData = {
       songId: song.songId,
       jamId: song.jamId,
       proposerName: song.proposerName,
@@ -71,7 +71,14 @@ async function createSong(req, res, next) {
       sessionDifficulties: song.sessionDifficulties,
       allowEditByOthers: song.allowEditByOthers,
       createdAt: song.createdAt,
-    });
+    };
+    
+    // Socket.io 이벤트 발송
+    if (req.io) {
+      req.io.to(jamId).emit('songCreated', responseData);
+    }
+    
+    res.status(201).json(responseData);
   } catch (error) {
     next(error);
   }
@@ -203,14 +210,21 @@ async function updateSong(req, res, next) {
     
     await song.save();
     
-    res.json({
+    const responseData = {
       songId: song.songId,
       title: song.title,
       artist: song.artist,
       genre: song.genre,
       requiredSessions: song.requiredSessions,
       sessionDifficulties: song.sessionDifficulties,
-    });
+    };
+    
+    // Socket.io 이벤트 발송
+    if (req.io) {
+      req.io.to(song.jamId).emit('songUpdated', responseData);
+    }
+    
+    res.json(responseData);
   } catch (error) {
     next(error);
   }
@@ -243,6 +257,11 @@ async function deleteSong(req, res, next) {
     await Vote.deleteMany({ songId });
     await Comment.deleteMany({ songId });
     await Song.deleteOne({ songId });
+    
+    // Socket.io 이벤트 발송
+    if (req.io) {
+      req.io.to(jamId).emit('songDeleted', { songId });
+    }
     
     res.json({ success: true });
   } catch (error) {

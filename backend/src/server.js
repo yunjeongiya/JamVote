@@ -4,6 +4,7 @@ require('dotenv').config();
 const http = require('http');
 const createApp = require('./app');
 const connectDB = require('./config/db');
+const { setupSocket } = require('./config/socket');
 
 const PORT = process.env.PORT || 5000;
 
@@ -12,14 +13,18 @@ async function startServer() {
     // MongoDB 연결
     await connectDB();
     
-    // Express 앱 생성
-    const app = createApp();
-    
     // HTTP 서버 생성
-    const server = http.createServer(app);
+    const server = http.createServer();
     
-    // Socket.io 설정 (추후 추가)
-    // const io = require('./config/socket')(server);
+    // Socket.io 설정
+    const io = setupSocket(server);
+    console.log('Socket.io initialized');
+    
+    // Express 앱 생성 (io를 전달)
+    const app = createApp(io);
+    
+    // Express를 HTTP 서버에 연결
+    server.on('request', app);
     
     // 서버 시작
     server.listen(PORT, () => {
@@ -30,9 +35,11 @@ async function startServer() {
     // Graceful shutdown
     process.on('SIGTERM', () => {
       console.log('SIGTERM signal received: closing HTTP server');
-      server.close(() => {
-        console.log('HTTP server closed');
-        process.exit(0);
+      io.close(() => {
+        server.close(() => {
+          console.log('HTTP server closed');
+          process.exit(0);
+        });
       });
     });
     

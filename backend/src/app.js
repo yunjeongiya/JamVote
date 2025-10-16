@@ -4,8 +4,16 @@ const express = require('express');
 const cors = require('cors');
 const errorHandler = require('./middleware/errorHandler');
 
-function createApp() {
+function createApp(io) {
   const app = express();
+  
+  // Socket.io를 req에 추가 (모든 라우트에서 접근 가능)
+  if (io) {
+    app.use((req, res, next) => {
+      req.io = io;
+      next();
+    });
+  }
   
   // 미들웨어
   app.use(cors({

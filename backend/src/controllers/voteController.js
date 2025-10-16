@@ -42,6 +42,15 @@ async function createVote(req, res, next) {
       existingVote.reason = type === 'impossible' ? (reason || '') : '';
       await existingVote.save();
       
+      // Socket.io 이벤트 발송
+      if (req.io) {
+        req.io.to(song.jamId).emit('voteChanged', {
+          songId,
+          userName,
+          type,
+        });
+      }
+      
       return res.json({
         voteId: existingVote.voteId,
         type: existingVote.type,
@@ -56,6 +65,15 @@ async function createVote(req, res, next) {
       type,
       reason: type === 'impossible' ? (reason || '') : '',
     });
+    
+    // Socket.io 이벤트 발송
+    if (req.io) {
+      req.io.to(song.jamId).emit('voteCreated', {
+        songId,
+        userName,
+        type,
+      });
+    }
     
     res.status(201).json({
       voteId: vote.voteId,
@@ -79,7 +97,18 @@ async function deleteVote(req, res, next) {
       return res.status(404).json({ error: '투표를 찾을 수 없습니다' });
     }
     
+    // 곡 정보 가져오기 (Socket.io에 jamId 필요)
+    const song = await Song.findOne({ songId: vote.songId });
+    
     await Vote.deleteOne({ voteId });
+    
+    // Socket.io 이벤트 발송
+    if (req.io && song) {
+      req.io.to(song.jamId).emit('voteDeleted', {
+        songId: vote.songId,
+        userName: vote.userName,
+      });
+    }
     
     res.json({ success: true });
   } catch (error) {

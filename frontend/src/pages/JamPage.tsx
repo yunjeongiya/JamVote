@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getJam } from '../api/jam';
 import { getAuth } from '../utils/storage';
 import { useSongs, useCreateSong, useUpdateSong, useDeleteSong } from '../hooks/useSongs';
 import { useCreateVote } from '../hooks/useVotes';
 import { useYouTubeSearch } from '../hooks/useYouTube';
+import { useSocket } from '../hooks/useSocket';
 import { getVotes } from '../api/vote';
 import { Loading } from '../components/common/Loading';
 import { SongSearchBar } from '../components/song/SongSearchBar';
@@ -21,6 +22,7 @@ import type { YouTubeSearchResult, Song, VoteResults } from '../types';
 export default function JamPage() {
   const { jamId } = useParams<{ jamId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedVideo, setSelectedVideo] = useState<YouTubeSearchResult | null>(null);
@@ -31,6 +33,52 @@ export default function JamPage() {
   const [voteResultsCache, setVoteResultsCache] = useState<Record<string, VoteResults>>({});
   
   const auth = jamId ? getAuth(jamId) : null;
+  
+  // Socket.io 연결 및 실시간 동기화
+  useSocket({
+    jamId: jamId!,
+    onSongCreated: () => {
+      // 곡 목록 갱신
+      queryClient.invalidateQueries({ queryKey: ['songs', jamId] });
+    },
+    onSongUpdated: () => {
+      // 곡 목록 갱신
+      queryClient.invalidateQueries({ queryKey: ['songs', jamId] });
+    },
+    onSongDeleted: ({ songId }) => {
+      // 곡 목록 갱신
+      queryClient.invalidateQueries({ queryKey: ['songs', jamId] });
+      // 투표 결과 캐시에서 제거
+      setVoteResultsCache(prev => {
+        const newCache = { ...prev };
+        delete newCache[songId];
+        return newCache;
+      });
+    },
+    onVoteCreated: ({ songId }) => {
+      // 해당 곡의 투표 결과 갱신
+      invalidateVoteCache(songId);
+      queryClient.invalidateQueries({ queryKey: ['songs', jamId] });
+    },
+    onVoteChanged: ({ songId }) => {
+      // 해당 곡의 투표 결과 갱신
+      invalidateVoteCache(songId);
+      queryClient.invalidateQueries({ queryKey: ['songs', jamId] });
+    },
+    onVoteDeleted: ({ songId }) => {
+      // 해당 곡의 투표 결과 갱신
+      invalidateVoteCache(songId);
+      queryClient.invalidateQueries({ queryKey: ['songs', jamId] });
+    },
+  });
+  
+  const invalidateVoteCache = (songId: string) => {
+    setVoteResultsCache(prev => {
+      const newCache = { ...prev };
+      delete newCache[songId];
+      return newCache;
+    });
+  };
   
   // 인증 확인
   useEffect(() => {
