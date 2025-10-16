@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getJam } from '../api/jam';
-import { getAuth } from '../utils/storage';
+import { getAuth, setAuth } from '../utils/storage';
 import { useSongs, useCreateSong, useUpdateSong, useDeleteSong } from '../hooks/useSongs';
 import { useCreateVote, useDeleteVote } from '../hooks/useVotes';
+import { updateUser } from '../api/user';
+import { updateJamExpiry } from '../api/jam';
 import { useYouTubeSearch } from '../hooks/useYouTube';
 import { useSocket } from '../hooks/useSocket';
 import { getVotes } from '../api/vote';
@@ -17,6 +19,8 @@ import { AddSongModal } from '../components/song/AddSongModal';
 import { EditSongModal } from '../components/song/EditSongModal';
 import { ImpossibleReasonModal } from '../components/song/ImpossibleReasonModal';
 import { SongList } from '../components/song/SongList';
+import { ProfileEditModal } from '../components/user/ProfileEditModal';
+import { JamExpiryModal } from '../components/jam/JamExpiryModal';
 import type { YouTubeSearchResult, Song, VoteResults } from '../types';
 
 export default function JamPage() {
@@ -31,6 +35,10 @@ export default function JamPage() {
   const [impossibleVoteSongId, setImpossibleVoteSongId] = useState<string | null>(null);
   const [expandedSongIds, setExpandedSongIds] = useState<Set<string>>(new Set());
   const [voteResultsCache, setVoteResultsCache] = useState<Record<string, VoteResults>>({});
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isExpiryModalOpen, setIsExpiryModalOpen] = useState(false);
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [isUpdatingExpiry, setIsUpdatingExpiry] = useState(false);
   
   const auth = jamId ? getAuth(jamId) : null;
   
@@ -256,6 +264,49 @@ export default function JamPage() {
     }
   };
   
+  const handleProfileUpdate = async (data: { newName?: string; sessions: string[] }) => {
+    if (!auth || !jamId) return;
+    
+    setIsUpdatingProfile(true);
+    try {
+      await updateUser(jamId, auth.userName, data.newName, data.sessions);
+      
+      // localStorage 업데이트
+      setAuth(jamId, {
+        userName: data.newName || auth.userName,
+        sessions: data.sessions,
+      });
+      
+      setIsProfileModalOpen(false);
+      alert('프로필이 수정되었습니다!');
+      
+      // 페이지 새로고침하여 변경사항 반영
+      window.location.reload();
+    } catch (error: any) {
+      alert(error.response?.data?.error || '프로필 수정에 실패했습니다');
+    } finally {
+      setIsUpdatingProfile(false);
+    }
+  };
+  
+  const handleExpiryUpdate = async (expireDays: number) => {
+    if (!jamId) return;
+    
+    setIsUpdatingExpiry(true);
+    try {
+      await updateJamExpiry(jamId, expireDays);
+      setIsExpiryModalOpen(false);
+      alert('유효기한이 연장되었습니다!');
+      
+      // 방 정보 새로고침
+      queryClient.invalidateQueries({ queryKey: ['jam', jamId] });
+    } catch (error: any) {
+      alert(error.response?.data?.error || '유효기한 연장에 실패했습니다');
+    } finally {
+      setIsUpdatingExpiry(false);
+    }
+  };
+  
   if (jamLoading || !auth) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -275,24 +326,61 @@ export default function JamPage() {
           {jamInfo?.description && (
             <p className="text-gray-400 mb-4">{jamInfo.description}</p>
           )}
-          <div className="flex items-center justify-between text-sm">
-            <div>
-              <span className="text-gray-500">로그인:</span>{' '}
-              <span className="text-white">{auth.userName}</span>
-              {auth.sessions.length > 0 && (
-                <>
-                  {' '}
-                  <span className="text-gray-500">
-                    ({auth.sessions.join(', ')})
-                  </span>
-                </>
-              )}
+          
+          {/* 만료 임박 알림 */}
+          {jamInfo && jamInfo.daysRemaining <= 1 && (
+            <div className="bg-red-900/30 border border-red-500/50 rounded-lg p-3 mb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <span className="text-red-400 text-lg">⚠️</span>
+                  <p className="text-sm text-red-300">
+                    <strong>주의!</strong> 방 유효기한이 {jamInfo.daysRemaining}일 남았습니다.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsExpiryModalOpen(true)}
+                  className="text-sm text-blue-400 hover:text-blue-300 underline"
+                >
+                  연장하기
+                </button>
+              </div>
             </div>
-            <div>
-              <span className="text-gray-500">유효기한:</span>{' '}
-              <span className={jamInfo && jamInfo.daysRemaining <= 1 ? 'text-red-400' : 'text-white'}>
-                {jamInfo?.daysRemaining}일 남음
-              </span>
+          )}
+          
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center space-x-4">
+              <div>
+                <span className="text-gray-500">로그인:</span>{' '}
+                <span className="text-white">{auth.userName}</span>
+                {auth.sessions.length > 0 && (
+                  <>
+                    {' '}
+                    <span className="text-gray-500">
+                      ({auth.sessions.join(', ')})
+                    </span>
+                  </>
+                )}
+              </div>
+              <button
+                onClick={() => setIsProfileModalOpen(true)}
+                className="text-xs text-blue-400 hover:text-blue-300 underline"
+              >
+                프로필 수정
+              </button>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div>
+                <span className="text-gray-500">유효기한:</span>{' '}
+                <span className={jamInfo && jamInfo.daysRemaining <= 3 ? 'text-yellow-400' : 'text-white'}>
+                  {jamInfo?.daysRemaining}일 남음
+                </span>
+              </div>
+              <button
+                onClick={() => setIsExpiryModalOpen(true)}
+                className="text-xs text-blue-400 hover:text-blue-300 underline"
+              >
+                연장
+              </button>
             </div>
           </div>
         </div>
@@ -372,6 +460,28 @@ export default function JamPage() {
           onSubmit={handleImpossibleVote}
           isSubmitting={createVoteMutation.isPending}
         />
+        
+        {/* 프로필 수정 모달 */}
+        <ProfileEditModal
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+          currentUserName={auth.userName}
+          currentSessions={auth.sessions}
+          jamId={jamId!}
+          onSubmit={handleProfileUpdate}
+          isSubmitting={isUpdatingProfile}
+        />
+        
+        {/* 유효기한 연장 모달 */}
+        {jamInfo && (
+          <JamExpiryModal
+            isOpen={isExpiryModalOpen}
+            onClose={() => setIsExpiryModalOpen(false)}
+            currentDaysRemaining={jamInfo.daysRemaining}
+            onSubmit={handleExpiryUpdate}
+            isSubmitting={isUpdatingExpiry}
+          />
+        )}
       </div>
     </div>
   );
