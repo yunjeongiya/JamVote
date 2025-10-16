@@ -246,8 +246,7 @@ expireAt: 1 (크론 잡 쿼리 최적화)
 {
   _id: ObjectId,
   jamId: String,              // FK to Jam (인덱스)
-  name: String,               // 원본 이름 (화면 표시용)
-  normalizedName: String,     // 정규화된 이름 (중복 체크용)
+  name: String,               // 사용자 이름 (공백 없음, 대소문자 구분)
   passwordHash: String,       // bcrypt 해시 (optional)
   sessions: [String],         // ['보컬', '기타']
   createdAt: Date
@@ -255,7 +254,7 @@ expireAt: 1 (크론 잡 쿼리 최적화)
 
 // 인덱스
 jamId: 1
-{ jamId: 1, normalizedName: 1 }: unique (방 내 중복 방지)
+{ jamId: 1, name: 1 }: unique (방 내 중복 방지)
 ```
 
 ### 4.3 Song (곡) 컬렉션
