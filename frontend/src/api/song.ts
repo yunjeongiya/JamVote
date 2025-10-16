@@ -14,8 +14,8 @@ export async function createSong(data: SongCreateRequest): Promise<Song> {
 /**
  * 곡 목록 조회
  */
-export async function getSongs(jamId: string): Promise<Song[]> {
-  const response = await client.get('/api/songs', { params: { jamId } });
+export async function getSongs(jamId: string, userName?: string): Promise<Song[]> {
+  const response = await client.get('/api/songs', { params: { jamId, userName } });
   return response.data.songs;
 }
 

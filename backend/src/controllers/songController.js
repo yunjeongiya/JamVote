@@ -86,11 +86,11 @@ async function createSong(req, res, next) {
 
 /**
  * 곡 목록 조회
- * GET /api/songs?jamId=xxx
+ * GET /api/songs?jamId=xxx&userName=xxx (optional)
  */
 async function getSongs(req, res, next) {
   try {
-    const { jamId } = req.query;
+    const { jamId, userName } = req.query;
     
     if (!jamId) {
       return res.status(400).json({ error: 'jamId가 필요합니다' });
@@ -105,6 +105,17 @@ async function getSongs(req, res, next) {
         const votes = await Vote.find({ songId: song.songId });
         const likesCount = votes.filter(v => v.type === 'like').length;
         const impossibleCount = votes.filter(v => v.type === 'impossible').length;
+        
+        // 현재 사용자의 투표 상태 조회 (userName이 제공된 경우)
+        let userVote = null;
+        let userVoteId = null;
+        if (userName) {
+          const vote = votes.find(v => v.userName === userName);
+          if (vote) {
+            userVote = vote.type;
+            userVoteId = vote.voteId;
+          }
+        }
         
         return {
           songId: song.songId,
@@ -122,6 +133,8 @@ async function getSongs(req, res, next) {
           allowEditByOthers: song.allowEditByOthers,
           likesCount,
           impossibleCount,
+          userVote,
+          userVoteId,
           createdAt: song.createdAt,
         };
       })

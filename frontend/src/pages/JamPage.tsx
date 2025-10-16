@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getJam } from '../api/jam';
 import { getAuth } from '../utils/storage';
 import { useSongs, useCreateSong, useUpdateSong, useDeleteSong } from '../hooks/useSongs';
-import { useCreateVote } from '../hooks/useVotes';
+import { useCreateVote, useDeleteVote } from '../hooks/useVotes';
 import { useYouTubeSearch } from '../hooks/useYouTube';
 import { useSocket } from '../hooks/useSocket';
 import { getVotes } from '../api/vote';
@@ -94,8 +94,8 @@ export default function JamPage() {
     enabled: !!jamId,
   });
   
-  // 곡 목록 조회
-  const { data: songs = [], isLoading: songsLoading } = useSongs(jamId!);
+  // 곡 목록 조회 (현재 사용자의 투표 상태 포함)
+  const { data: songs = [], isLoading: songsLoading } = useSongs(jamId!, auth?.userName);
   
   // YouTube 검색
   const { data: searchResults } = useYouTubeSearch(searchQuery);
@@ -105,8 +105,9 @@ export default function JamPage() {
   const updateSongMutation = useUpdateSong(jamId!);
   const deleteSongMutation = useDeleteSong(jamId!);
   
-  // 투표 mutation
+  // 투표 mutations
   const createVoteMutation = useCreateVote(jamId!);
+  const deleteVoteMutation = useDeleteVote(jamId!);
   
   // 펼쳐진 곡의 투표 결과 로드
   useEffect(() => {
@@ -191,13 +192,31 @@ export default function JamPage() {
   const handleVote = async (songId: string, type: 'like' | 'impossible') => {
     if (!auth) return;
     
-    // 불가능 투표는 이유 입력 모달 표시
+    // 현재 투표 상태 확인
+    const song = songs.find(s => s.songId === songId);
+    const currentVote = song?.userVote;
+    const currentVoteId = song?.userVoteId;
+    
+    // 같은 타입의 투표를 다시 클릭하면 취소
+    if (currentVote === type && currentVoteId) {
+      try {
+        await deleteVoteMutation.mutateAsync(currentVoteId);
+        // 투표 결과 캐시 무효화
+        invalidateVoteCache(songId);
+        return;
+      } catch (error: any) {
+        alert(error.response?.data?.error || '투표 취소에 실패했습니다');
+        return;
+      }
+    }
+    
+    // 불가능 투표는 이유 입력 모달 표시 (새로 투표하거나 변경하는 경우)
     if (type === 'impossible') {
       setImpossibleVoteSongId(songId);
       return;
     }
     
-    // 좋아요 투표
+    // 좋아요 투표 (새로 투표하거나 변경하는 경우)
     try {
       await createVoteMutation.mutateAsync({
         songId,
@@ -205,11 +224,7 @@ export default function JamPage() {
         type,
       });
       // 투표 결과 캐시 무효화
-      setVoteResultsCache(prev => {
-        const newCache = { ...prev };
-        delete newCache[songId];
-        return newCache;
-      });
+      invalidateVoteCache(songId);
     } catch (error: any) {
       alert(error.response?.data?.error || '투표에 실패했습니다');
     }
@@ -227,11 +242,7 @@ export default function JamPage() {
       });
       setImpossibleVoteSongId(null);
       // 투표 결과 캐시 무효화
-      setVoteResultsCache(prev => {
-        const newCache = { ...prev };
-        delete newCache[impossibleVoteSongId];
-        return newCache;
-      });
+      invalidateVoteCache(impossibleVoteSongId);
     } catch (error: any) {
       alert(error.response?.data?.error || '투표에 실패했습니다');
     }
@@ -312,6 +323,10 @@ export default function JamPage() {
             onVote={handleVote}
             onEdit={setEditingSong}
             onDelete={handleDeleteSong}
+            getUserVoteType={(songId) => {
+              const song = songs.find(s => s.songId === songId);
+              return song?.userVote || null;
+            }}
             getVoteResults={(songId) => voteResultsCache[songId]}
             isLoadingVotes={(songId) => expandedSongIds.has(songId) && !voteResultsCache[songId]}
           />

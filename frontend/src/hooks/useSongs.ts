@@ -7,10 +7,10 @@ import type { SongCreateRequest, SongUpdateRequest } from '../types';
 /**
  * 곡 목록 조회
  */
-export function useSongs(jamId: string) {
+export function useSongs(jamId: string, userName?: string) {
   return useQuery({
-    queryKey: ['songs', jamId],
-    queryFn: () => getSongs(jamId),
+    queryKey: ['songs', jamId, userName],
+    queryFn: () => getSongs(jamId, userName),
     enabled: !!jamId,
   });
 }
