@@ -33,29 +33,40 @@
 - [x] 백엔드 미들웨어 (errorHandler)
 - [x] 프론트엔드 API 클라이언트 (jam, user, song, vote, comment, feedback, youtube)
 - [x] 환경 변수 템플릿 생성 (ENV_SETUP.md)
-- [ ] Git 초기 커밋 (진행 중)
+- [x] Git 초기 커밋 ✅
+
+#### Day 3-4: 데이터베이스 및 기본 API
+- [x] Mongoose 모델 작성 (Jam, User, Song, Vote, Comment, Feedback)
+- [x] ID 생성 유틸리티 구현
+- [x] 상수 정의 (constants.js)
+- [x] 입력값 검증 미들웨어 (validate.js)
+- [x] Jam API 구현 (컨트롤러, 라우터)
+  - [x] POST /api/jams (방 생성)
+  - [x] GET /api/jams/:jamId (방 조회)
+  - [x] PATCH /api/jams/:jamId/expiry (유효기한 수정)
+- [x] User API 구현 (컨트롤러, 라우터)
+  - [x] POST /api/users (프로필 생성)
+  - [x] POST /api/users/login (로그인)
+  - [x] PATCH /api/users/:jamId/:userName (프로필 수정)
+- [x] bcrypt 비밀번호 해싱
+- [x] 이름 정규화 유틸리티
+- [x] API 라우터 연결
+- [ ] Git 커밋 (진행 중)
 
 ---
 
 ## 🚧 진행 중인 작업
 
-없음
+Day 3-4 작업 완료 후 커밋 준비 중
 
 ---
 
 ## 📝 다음 작업
 
-### Day 1-2 남은 작업
-- MongoDB Atlas 계정 생성 및 설정 (수동)
-- 환경 변수 실제 값 설정 (수동)
-
-### Day 3-4: 데이터베이스 및 기본 API
-- Mongoose 모델 작성 (Jam, User)
-- ID 생성 유틸리티 구현
-- Jam API 구현
-- User API 구현
-- bcrypt 비밀번호 해싱
-- 이름 정규화 유틸리티
+### Day 1-4 남은 작업 (수동 필요)
+- MongoDB Atlas 계정 생성 및 설정
+- 환경 변수 실제 값 설정 (.env 파일 생성)
+- 백엔드 서버 테스트 실행
 
 ---
 
