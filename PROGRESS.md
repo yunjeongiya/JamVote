@@ -49,21 +49,42 @@
   - [x] POST /api/users/login (로그인)
   - [x] PATCH /api/users/:jamId/:userName (프로필 수정)
 - [x] bcrypt 비밀번호 해싱
-- [x] 이름 정규화 유틸리티
+- [x] ~~이름 정규화 유틸리티~~ (제거됨 - 스키마 단순화)
 - [x] API 라우터 연결
-- [ ] Git 커밋 (진행 중)
+- [x] Git 커밋 ✅
+
+#### [긴급] User 스키마 단순화 (2025-10-16)
+- [x] normalizedName 필드 제거
+- [x] 중복 체크 방식 변경 (정확한 일치)
+- [x] 공백 검증 추가 (프론트/백엔드)
+- [x] normalize 유틸리티 삭제
+- [x] validation.ts 업데이트
+- [x] Git 커밋 ✅
+
+#### Day 5-7: 프론트엔드 기본 구조
+- [x] 세션 아이콘 SVG 컴포넌트
+- [x] 공통 UI 컴포넌트 (Button, Input, Modal, Toast 등)
+- [ ] React Router 설정
+- [ ] React Query 설정
+- [ ] 홈 페이지 (방 생성/접속)
+- [ ] 로그인 페이지 (프로필 생성)
 
 ---
 
 ## 🚧 진행 중인 작업
 
-Day 3-4 작업 완료 후 커밋 준비 중
+Day 5-7: 프론트엔드 기본 화면 구현
 
 ---
 
 ## 📝 다음 작업
 
-### Day 1-4 남은 작업 (수동 필요)
+### Day 5-7 남은 작업
+- React Router 및 React Query 설정
+- 홈 페이지 구현
+- 로그인/프로필 생성 페이지 구현
+
+### 수동 작업 (테스트용)
 - MongoDB Atlas 계정 생성 및 설정
 - 환경 변수 실제 값 설정 (.env 파일 생성)
 - 백엔드 서버 테스트 실행
