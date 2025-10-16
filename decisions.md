@@ -78,47 +78,51 @@ await Song.find({ jamId }).populate('votes');
 
 ---
 
-## 3. 이름 중복 체크: 대소문자 무시 + 공백 제거
+## 3. 이름 중복 체크: 공백 차단 + 대소문자 구분
 
 **결정일**: 2025-10-14
+**수정일**: 2025-10-16
 
-### 결정 내용
-이름 중복 체크 시 `normalizedName` 사용 (소문자 변환 + 공백 제거)
+### 결정 내용 (최종)
+- 공백 입력 자체를 차단 (프론트엔드 + 백엔드 검증)
+- 대소문자 구분 (John과 john은 다른 사람)
+- `normalizedName` 필드 불필요 ❌
 
-### 정규화 규칙
+### 변경 이유
+1. **사용자 혼란 제거**: 공백이 있는/없는 이름을 다르게 보면 헷갈림
+2. **직관성**: "John"으로 가입했으면 "john"은 다른 사람
+3. **단순성**: DB 필드 하나 줄어듦, 로직 간단
+
+### 구현
 ```javascript
-function normalizeUsername(name) {
-  return name.trim().toLowerCase();
+// 프론트엔드: 공백 입력 차단
+<input
+  onChange={(e) => setName(e.target.value.replace(/\s/g, ''))}
+/>
+
+// 백엔드: 공백 검증
+if (/\s/.test(name)) {
+  return res.status(400).json({
+    error: "이름에 공백을 사용할 수 없습니다"
+  });
 }
+
+// 중복 체크 (단순 일치)
+const exists = await User.findOne({ jamId, name });
 ```
 
 ### 동작 예시
 | 입력 1 | 입력 2 | 중복 여부 |
 |--------|--------|----------|
 | 김철수 | 김철수 | ❌ 중복 |
-| John | john | ❌ 중복 |
-| " 김철수 " | "김철수" | ❌ 중복 |
-| 김철수 | 철수 | ✅ 허용 |
+| John | john | ✅ 허용 (다른 사람) |
+| "김 철수" | - | ❌ 입력 불가 (공백 자동 제거) |
 
-### 근거
-1. **한글 이름**: 대소문자 개념 없음 (주 사용층)
-2. **영문 이름**: "John"과 "john"을 다른 사람으로 구분하면 혼란
-3. **공백 실수**: 입력 실수로 인한 중복 가입 방지
-4. **국제화 대비**: 외국인 밴드 멤버 배려
-
-### 구현
+### DB 스키마
 ```javascript
-// DB 스키마
 {
-  name: "John", // 원본 유지 (화면 표시용)
-  normalizedName: "john" // 중복 체크용
+  name: String  // normalizedName 필드 삭제
 }
-
-// 중복 체크
-const exists = await User.findOne({
-  jamId: jamId,
-  normalizedName: normalizeUsername(inputName)
-});
 ```
 
 ---
@@ -403,3 +407,4 @@ UI 통일성을 위해 기존 이모지 아이콘 대신, 선으로 디자인된
 
 ## 변경 이력
 - 2025-10-14: 초기 문서 작성, 대화 기반 요구사항 구체화 및 일부 기능 제외 결정
+- 2025-10-16: 이름 중복 체크 로직 단순화 (normalizedName 필드 제거, 공백 차단, 대소문자 구분)
