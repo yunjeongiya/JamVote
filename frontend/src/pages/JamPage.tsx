@@ -282,13 +282,10 @@ export default function JamPage() {
     
     setIsUpdatingProfile(true);
     try {
-      await updateUser(jamId, auth.userName, data.newName, data.sessions);
+      await updateUser(jamId, auth.userName, { newName: data.newName, sessions: data.sessions });
       
       // localStorage 업데이트
-      setAuth(jamId, {
-        userName: data.newName || auth.userName,
-        sessions: data.sessions,
-      });
+      setAuth(jamId, data.newName || auth.userName, data.sessions);
       
       setIsProfileModalOpen(false);
       success('프로필이 수정되었습니다!');
@@ -390,7 +387,7 @@ export default function JamPage() {
               <div>
                 <span className="text-gray-500">로그인:</span>{' '}
                 <span className="text-white">{auth.userName}</span>
-                {auth.sessions.length > 0 && (
+                {auth.sessions && auth.sessions.length > 0 && (
                   <>
                     {' '}
                     <span className="text-gray-500">

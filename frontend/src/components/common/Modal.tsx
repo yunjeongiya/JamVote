@@ -48,8 +48,8 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
           `}
         >
           {title && (
-            <Dialog.Title className="px-6 py-4 border-b border-gray-800">
-              <h3 className="text-lg font-semibold text-white">{title}</h3>
+            <Dialog.Title className="px-6 py-4 border-b border-gray-800 text-lg font-semibold text-white">
+              {title}
             </Dialog.Title>
           )}
           

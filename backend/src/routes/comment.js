@@ -2,7 +2,7 @@
 
 const express = require('express');
 const { body, query } = require('express-validator');
-const validate = require('../middleware/validate');
+const { validate } = require('../middleware/validate');
 const { commentLimiter } = require('../middleware/rateLimiter');
 const {
   createComment,
