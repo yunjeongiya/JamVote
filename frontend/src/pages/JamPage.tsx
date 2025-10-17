@@ -13,6 +13,7 @@ import { createFeedback } from '../api/feedback';
 import { useYouTubeSearch } from '../hooks/useYouTube';
 import { useSocket } from '../hooks/useSocket';
 import { getVotes } from '../api/vote';
+import { createComment } from '../api/comment';
 import { useToast } from '../hooks/useToast';
 import { Loading } from '../components/common/Loading';
 import { ToastContainer } from '../components/common/Toast';
@@ -218,6 +219,18 @@ export default function JamPage() {
     }
   };
   
+  const handleToggleExpand = (songId: string) => {
+    setExpandedSongIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(songId)) {
+        newSet.delete(songId);
+      } else {
+        newSet.add(songId);
+      }
+      return newSet;
+    });
+  };
+  
   const handleVote = async (songId: string, type: 'like' | 'impossible') => {
     if (!auth) return;
     
@@ -239,7 +252,7 @@ export default function JamPage() {
       }
     }
     
-    // 불가능 투표는 이유 입력 모달 표시 (새로 투표하거나 변경하는 경우)
+    // 어려워요 투표는 이유 입력 모달 표시 (새로 투표하거나 변경하는 경우)
     if (type === 'impossible') {
       setImpossibleVoteSongId(songId);
       return;
@@ -263,13 +276,25 @@ export default function JamPage() {
     if (!impossibleVoteSongId || !auth) return;
     
     try {
+      // 1. 먼저 어려워요 투표 생성
       await createVoteMutation.mutateAsync({
         songId: impossibleVoteSongId,
         userName: auth.userName,
         type: 'impossible',
-        reason,
       });
+      
+      // 2. 이유가 있으면 댓글로 작성
+      if (reason.trim()) {
+        await createComment({
+          songId: impossibleVoteSongId,
+          userName: auth.userName,
+          content: `어려운 이유: ${reason.trim()}`,
+        });
+      }
+      
       setImpossibleVoteSongId(null);
+      success('투표가 완료되었습니다!');
+      
       // 투표 결과 캐시 무효화
       invalidateVoteCache(impossibleVoteSongId);
     } catch (err: any) {
@@ -460,6 +485,8 @@ export default function JamPage() {
             }}
             getVoteResults={(songId) => voteResultsCache[songId]}
             isLoadingVotes={(songId) => expandedSongIds.has(songId) && !voteResultsCache[songId]}
+            onToggleExpand={handleToggleExpand}
+            expandedSongIds={expandedSongIds}
           />
         </div>
         
@@ -488,7 +515,7 @@ export default function JamPage() {
           />
         )}
         
-        {/* 불가능 투표 이유 모달 */}
+        {/* 어려워요 투표 이유 모달 */}
         <ImpossibleReasonModal
           isOpen={!!impossibleVoteSongId}
           onClose={() => setImpossibleVoteSongId(null)}

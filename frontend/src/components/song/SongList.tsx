@@ -14,6 +14,8 @@ interface SongListProps {
   getUserVoteType?: (songId: string) => 'like' | 'impossible' | null;
   getVoteResults?: (songId: string) => VoteResults | undefined;
   isLoadingVotes?: (songId: string) => boolean;
+  onToggleExpand?: (songId: string) => void;
+  expandedSongIds?: Set<string>;
 }
 
 export function SongList({
@@ -26,6 +28,8 @@ export function SongList({
   getUserVoteType,
   getVoteResults,
   isLoadingVotes,
+  onToggleExpand,
+  expandedSongIds,
 }: SongListProps) {
   if (isLoading) {
     return (
@@ -57,6 +61,8 @@ export function SongList({
           userVoteType={getUserVoteType ? getUserVoteType(song.songId) : null}
           voteResults={getVoteResults ? getVoteResults(song.songId) : undefined}
           isLoadingVotes={isLoadingVotes ? isLoadingVotes(song.songId) : false}
+          isExpanded={expandedSongIds ? expandedSongIds.has(song.songId) : false}
+          onToggleExpand={onToggleExpand ? () => onToggleExpand(song.songId) : undefined}
         />
       ))}
     </div>

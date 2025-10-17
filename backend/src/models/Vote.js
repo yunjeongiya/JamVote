@@ -22,10 +22,6 @@ const voteSchema = new mongoose.Schema({
     enum: ['like', 'impossible'],
     required: true,
   },
-  reason: {
-    type: String,
-    default: '',
-  },
   createdAt: {
     type: Date,
     default: Date.now,

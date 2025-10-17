@@ -11,7 +11,7 @@ const { generateUUID } = require('../utils/generateId');
  */
 async function createVote(req, res, next) {
   try {
-    const { songId, userName, type, reason } = req.body;
+    const { songId, userName, type } = req.body;
     
     // 곡 존재 여부 확인
     const song = await Song.findOne({ songId });
@@ -37,9 +37,8 @@ async function createVote(req, res, next) {
         });
       }
       
-      // 다른 타입이면 업데이트 (좋아요 ↔ 불가능 전환)
+      // 다른 타입이면 업데이트 (좋아요 ↔ 어려워요 전환)
       existingVote.type = type;
-      existingVote.reason = type === 'impossible' ? (reason || '') : '';
       await existingVote.save();
       
       // Socket.io 이벤트 발송
@@ -63,7 +62,6 @@ async function createVote(req, res, next) {
       songId,
       userName,
       type,
-      reason: type === 'impossible' ? (reason || '') : '',
     });
     
     // Socket.io 이벤트 발송
@@ -170,7 +168,6 @@ async function getVotes(req, res, next) {
           userName: 1,
           sessions: { $ifNull: [{ $arrayElemAt: ['$userInfo.sessions', 0] }, []] },
           type: 1,
-          reason: 1,
           createdAt: 1
         }
       }
@@ -178,7 +175,7 @@ async function getVotes(req, res, next) {
     
     const votesWithUsers = await Vote.aggregate(pipeline);
     
-    // 좋아요/불가능 분리
+    // 좋아요/어려워요 분리
     const likes = votesWithUsers.filter(v => v.type === 'like').map(v => ({
       userName: v.userName,
       sessions: v.sessions,
@@ -188,7 +185,6 @@ async function getVotes(req, res, next) {
     const impossibles = votesWithUsers.filter(v => v.type === 'impossible').map(v => ({
       userName: v.userName,
       sessions: v.sessions,
-      reason: v.reason,
       createdAt: v.createdAt,
     }));
     

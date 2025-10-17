@@ -7,7 +7,6 @@ export interface Vote {
   songId: string;
   userName: string;
   type: VoteType;
-  reason?: string;
   createdAt: Date;
 }
 
@@ -15,13 +14,11 @@ export interface VoteCreateRequest {
   songId: string;
   userName: string;
   type: VoteType;
-  reason?: string;
 }
 
 export interface VoteWithUser {
   userName: string;
   sessions: string[];
-  reason?: string;
   createdAt: Date;
 }
 
