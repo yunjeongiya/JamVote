@@ -70,23 +70,50 @@ async function getComments(req, res, next) {
       return res.status(404).json({ error: '곡을 찾을 수 없습니다' });
     }
     
-    // 댓글 목록 조회 (작성일 오름차순)
-    const comments = await Comment.find({ songId }).sort({ createdAt: 1 });
+    // MongoDB Aggregation Pipeline을 사용하여 N+1 쿼리 문제 해결
+    const pipeline = [
+      // 1. songId로 필터링
+      { $match: { songId } },
+      
+      // 2. 작성일 오름차순 정렬
+      { $sort: { createdAt: 1 } },
+      
+      // 3. User 컬렉션과 조인
+      {
+        $lookup: {
+          from: 'users',
+          let: { userName: '$userName', jamId: song.jamId },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$name', '$$userName'] },
+                    { $eq: ['$jamId', '$$jamId'] }
+                  ]
+                }
+              }
+            }
+          ],
+          as: 'userInfo'
+        }
+      },
+      
+      // 4. 필요한 필드만 선택
+      {
+        $project: {
+          _id: 0,
+          commentId: 1,
+          songId: 1,
+          userName: 1,
+          sessions: { $ifNull: [{ $arrayElemAt: ['$userInfo.sessions', 0] }, []] },
+          content: 1,
+          createdAt: 1
+        }
+      }
+    ];
     
-    // 사용자 세션 정보와 함께 반환
-    const commentsWithUsers = await Promise.all(
-      comments.map(async (comment) => {
-        const user = await User.findOne({ jamId: song.jamId, name: comment.userName });
-        return {
-          commentId: comment.commentId,
-          songId: comment.songId,
-          userName: comment.userName,
-          sessions: user ? user.sessions : [],
-          content: comment.content,
-          createdAt: comment.createdAt,
-        };
-      })
-    );
+    const commentsWithUsers = await Comment.aggregate(pipeline);
     
     res.json({ comments: commentsWithUsers });
   } catch (error) {

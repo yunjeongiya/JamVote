@@ -1,7 +1,9 @@
 // 댓글 아이템 컴포넌트
 
+import { useState } from 'react';
 import { SessionBadge } from '../song/SessionBadge';
 import { Button } from '../common/Button';
+import { Modal } from '../common/Modal';
 import type { Comment } from '../../types';
 
 interface CommentItemProps {
@@ -12,11 +14,15 @@ interface CommentItemProps {
 
 export function CommentItem({ comment, currentUserName, onDelete }: CommentItemProps) {
   const isOwner = comment.userName === currentUserName;
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   
   const handleDelete = () => {
-    if (window.confirm('댓글을 삭제하시겠습니까?')) {
-      onDelete?.(comment.commentId);
-    }
+    setIsDeleteModalOpen(true);
+  };
+  
+  const confirmDelete = () => {
+    onDelete?.(comment.commentId);
+    setIsDeleteModalOpen(false);
   };
   
   return (
@@ -61,6 +67,34 @@ export function CommentItem({ comment, currentUserName, onDelete }: CommentItemP
       <p className="text-sm text-gray-200 whitespace-pre-wrap break-words">
         {comment.content}
       </p>
+      
+      {/* 삭제 확인 모달 */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="댓글 삭제"
+        size="sm"
+      >
+        <div className="p-4 space-y-4">
+          <p className="text-gray-300">
+            댓글을 삭제하시겠습니까?
+          </p>
+          <div className="flex space-x-2 justify-end">
+            <Button
+              variant="secondary"
+              onClick={() => setIsDeleteModalOpen(false)}
+            >
+              취소
+            </Button>
+            <Button
+              variant="danger"
+              onClick={confirmDelete}
+            >
+              삭제
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

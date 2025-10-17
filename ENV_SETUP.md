@@ -31,6 +31,9 @@ FRONTEND_URL=http://localhost:5173
 
 # 환경 (development | production)
 NODE_ENV=development
+
+# 관리자 API 비밀 키 (선택, 프로덕션에서 필수)
+ADMIN_SECRET_KEY=your_secure_admin_key_here
 ```
 
 ## YouTube API 키 발급 방법

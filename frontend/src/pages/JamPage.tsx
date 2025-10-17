@@ -13,7 +13,9 @@ import { createFeedback } from '../api/feedback';
 import { useYouTubeSearch } from '../hooks/useYouTube';
 import { useSocket } from '../hooks/useSocket';
 import { getVotes } from '../api/vote';
+import { useToast } from '../hooks/useToast';
 import { Loading } from '../components/common/Loading';
+import { ToastContainer } from '../components/common/Toast';
 import { SongSearchBar } from '../components/song/SongSearchBar';
 import { YouTubeSearchResultItem } from '../components/song/YouTubeSearchResult';
 import { AddSongModal } from '../components/song/AddSongModal';
@@ -30,6 +32,7 @@ export default function JamPage() {
   const { jamId } = useParams<{ jamId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { toasts, removeToast, success, error } = useToast();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedVideo, setSelectedVideo] = useState<YouTubeSearchResult | null>(null);
@@ -132,17 +135,22 @@ export default function JamPage() {
   
   // 펼쳐진 곡의 투표 결과 로드
   useEffect(() => {
-    expandedSongIds.forEach(async (songId) => {
-      if (!voteResultsCache[songId]) {
-        try {
-          const results = await getVotes(songId);
-          setVoteResultsCache(prev => ({ ...prev, [songId]: results }));
-        } catch (error) {
-          console.error('Failed to load votes:', error);
+    const fetchVotesForExpanded = async () => {
+      const promises = Array.from(expandedSongIds).map(async (songId) => {
+        if (!voteResultsCache[songId]) {
+          try {
+            const results = await getVotes(songId);
+            setVoteResultsCache(prev => ({ ...prev, [songId]: results }));
+          } catch (error) {
+            console.error(`Failed to load votes for song ${songId}:`, error);
+          }
         }
-      }
-    });
-  }, [expandedSongIds, voteResultsCache]);
+      });
+      await Promise.all(promises);
+    };
+
+    fetchVotesForExpanded();
+  }, [expandedSongIds]);
   
   const handleVideoSelect = (video: YouTubeSearchResult) => {
     setSelectedVideo(video);
@@ -155,9 +163,9 @@ export default function JamPage() {
       await createSongMutation.mutateAsync(data);
       setIsAddModalOpen(false);
       setSelectedVideo(null);
-      alert('곡이 추가되었습니다!');
+      success('곡이 추가되었습니다!');
     } catch (error: any) {
-      alert(error.response?.data?.error || '곡 추가에 실패했습니다');
+      error(error.response?.data?.error || '곡 추가에 실패했습니다');
     }
   };
   
@@ -173,15 +181,15 @@ export default function JamPage() {
         },
       });
       setEditingSong(null);
-      alert('곡이 수정되었습니다!');
+      success('곡이 수정되었습니다!');
       // 투표 결과 캐시 무효화
       setVoteResultsCache(prev => {
         const newCache = { ...prev };
         delete newCache[editingSong.songId];
         return newCache;
       });
-    } catch (error: any) {
-      alert(error.response?.data?.error || '곡 수정에 실패했습니다');
+    } catch (err: any) {
+      error(err.response?.data?.error || '곡 수정에 실패했습니다');
     }
   };
   
@@ -193,7 +201,7 @@ export default function JamPage() {
         songId,
         userName: auth.userName,
       });
-      alert('곡이 삭제되었습니다!');
+      success('곡이 삭제되었습니다!');
       // 투표 결과 캐시에서 제거
       setVoteResultsCache(prev => {
         const newCache = { ...prev };
@@ -205,8 +213,8 @@ export default function JamPage() {
         newSet.delete(songId);
         return newSet;
       });
-    } catch (error: any) {
-      alert(error.response?.data?.error || '곡 삭제에 실패했습니다');
+    } catch (err: any) {
+      error(err.response?.data?.error || '곡 삭제에 실패했습니다');
     }
   };
   
@@ -225,8 +233,8 @@ export default function JamPage() {
         // 투표 결과 캐시 무효화
         invalidateVoteCache(songId);
         return;
-      } catch (error: any) {
-        alert(error.response?.data?.error || '투표 취소에 실패했습니다');
+      } catch (err: any) {
+        error(err.response?.data?.error || '투표 취소에 실패했습니다');
         return;
       }
     }
@@ -246,8 +254,8 @@ export default function JamPage() {
       });
       // 투표 결과 캐시 무효화
       invalidateVoteCache(songId);
-    } catch (error: any) {
-      alert(error.response?.data?.error || '투표에 실패했습니다');
+    } catch (err: any) {
+      error(err.response?.data?.error || '투표에 실패했습니다');
     }
   };
   
@@ -264,8 +272,8 @@ export default function JamPage() {
       setImpossibleVoteSongId(null);
       // 투표 결과 캐시 무효화
       invalidateVoteCache(impossibleVoteSongId);
-    } catch (error: any) {
-      alert(error.response?.data?.error || '투표에 실패했습니다');
+    } catch (err: any) {
+      error(err.response?.data?.error || '투표에 실패했습니다');
     }
   };
   
@@ -283,12 +291,13 @@ export default function JamPage() {
       });
       
       setIsProfileModalOpen(false);
-      alert('프로필이 수정되었습니다!');
+      success('프로필이 수정되었습니다!');
       
-      // 페이지 새로고침하여 변경사항 반영
-      window.location.reload();
-    } catch (error: any) {
-      alert(error.response?.data?.error || '프로필 수정에 실패했습니다');
+      // React Query 캐시 갱신하여 변경사항 반영
+      queryClient.invalidateQueries({ queryKey: ['songs', jamId] });
+      queryClient.invalidateQueries({ queryKey: ['jam', jamId] });
+    } catch (err: any) {
+      error(err.response?.data?.error || '프로필 수정에 실패했습니다');
     } finally {
       setIsUpdatingProfile(false);
     }
@@ -301,12 +310,12 @@ export default function JamPage() {
     try {
       await updateJamExpiry(jamId, expireDays);
       setIsExpiryModalOpen(false);
-      alert('유효기한이 연장되었습니다!');
+      success('유효기한이 연장되었습니다!');
       
       // 방 정보 새로고침
       queryClient.invalidateQueries({ queryKey: ['jam', jamId] });
-    } catch (error: any) {
-      alert(error.response?.data?.error || '유효기한 연장에 실패했습니다');
+    } catch (err: any) {
+      error(err.response?.data?.error || '유효기한 연장에 실패했습니다');
     } finally {
       setIsUpdatingExpiry(false);
     }
@@ -328,9 +337,9 @@ export default function JamPage() {
       });
       
       setIsFeedbackModalOpen(false);
-      alert(response.message || '피드백이 전송되었습니다. 감사합니다!');
-    } catch (error: any) {
-      alert(error.response?.data?.error || '피드백 전송에 실패했습니다');
+      success(response.message || '피드백이 전송되었습니다. 감사합니다!');
+    } catch (err: any) {
+      error(err.response?.data?.error || '피드백 전송에 실패했습니다');
     } finally {
       setIsSubmittingFeedback(false);
     }
@@ -525,6 +534,9 @@ export default function JamPage() {
         {/* 플로팅 피드백 버튼 */}
         <FloatingFeedbackButton onClick={() => setIsFeedbackModalOpen(true)} />
       </div>
+      
+      {/* Toast 알림 */}
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
     </div>
   );
 }

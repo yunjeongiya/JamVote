@@ -8,7 +8,7 @@ const Vote = require('../models/Vote');
 const Comment = require('../models/Comment');
 
 /**
- * 만료된 방과 관련 데이터 삭제
+ * 만료된 방과 관련 데이터 삭제 (Bulk Operation으로 최적화)
  */
 async function cleanupExpiredJams() {
   try {
@@ -28,37 +28,37 @@ async function cleanupExpiredJams() {
     
     console.log(`[Cleanup] ${expiredJams.length}개의 만료된 방 발견`);
     
-    let deletedCount = 0;
+    // 모든 만료된 방의 jamId 수집
+    const jamIds = expiredJams.map(jam => jam.jamId);
     
-    // 각 만료된 방의 데이터 삭제
-    for (const jam of expiredJams) {
-      try {
-        const { jamId, name } = jam;
-        
-        // Cascade 삭제
-        const [userCount, songCount, voteCount, commentCount] = await Promise.all([
-          User.deleteMany({ jamId }).then(r => r.deletedCount),
-          Song.deleteMany({ jamId }).then(r => r.deletedCount),
-          Vote.deleteMany({ songId: { $in: await Song.find({ jamId }).distinct('songId') } }).then(r => r.deletedCount),
-          Comment.deleteMany({ songId: { $in: await Song.find({ jamId }).distinct('songId') } }).then(r => r.deletedCount),
-        ]);
-        
-        // 방 삭제
-        await Jam.deleteOne({ jamId });
-        
-        console.log(`[Cleanup] 방 삭제 완료: ${jamId} (${name})`);
-        console.log(`  - 사용자: ${userCount}명`);
-        console.log(`  - 곡: ${songCount}개`);
-        console.log(`  - 투표: ${voteCount}개`);
-        console.log(`  - 댓글: ${commentCount}개`);
-        
-        deletedCount++;
-      } catch (error) {
-        console.error(`[Cleanup] 방 삭제 실패 (${jam.jamId}):`, error.message);
-      }
+    // 관련 곡들의 songId 수집 (투표/댓글 삭제용)
+    const songsToDelete = await Song.find({ jamId: { $in: jamIds } });
+    const songIdsToDelete = songsToDelete.map(song => song.songId);
+    
+    // Bulk operation으로 한 번에 삭제 (역순으로 삭제: 자식 → 부모)
+    const [voteResult, commentResult, songResult, userResult, jamResult] = await Promise.all([
+      Vote.deleteMany({ songId: { $in: songIdsToDelete } }),
+      Comment.deleteMany({ songId: { $in: songIdsToDelete } }),
+      Song.deleteMany({ jamId: { $in: jamIds } }),
+      User.deleteMany({ jamId: { $in: jamIds } }),
+      Jam.deleteMany({ jamId: { $in: jamIds } }),
+    ]);
+    
+    // 삭제 결과 로깅
+    console.log('[Cleanup] 청소 작업 완료:');
+    console.log(`  - 방: ${jamResult.deletedCount}개`);
+    console.log(`  - 사용자: ${userResult.deletedCount}명`);
+    console.log(`  - 곡: ${songResult.deletedCount}개`);
+    console.log(`  - 투표: ${voteResult.deletedCount}개`);
+    console.log(`  - 댓글: ${commentResult.deletedCount}개`);
+    
+    // 상세 로그 (삭제된 방 목록)
+    if (expiredJams.length <= 10) {
+      console.log('[Cleanup] 삭제된 방 목록:');
+      expiredJams.forEach(jam => {
+        console.log(`  - ${jam.jamId} (${jam.name})`);
+      });
     }
-    
-    console.log(`[Cleanup] 청소 작업 완료: ${deletedCount}/${expiredJams.length}개 방 삭제됨`);
   } catch (error) {
     console.error('[Cleanup] 청소 작업 중 오류 발생:', error);
   }
