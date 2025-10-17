@@ -97,12 +97,23 @@ export default function JamPage() {
     },
   });
   
-  const invalidateVoteCache = (songId: string) => {
+  const invalidateVoteCache = async (songId: string) => {
+    // 캐시 삭제
     setVoteResultsCache(prev => {
       const newCache = { ...prev };
       delete newCache[songId];
       return newCache;
     });
+    
+    // 펼쳐진 상태면 즉시 다시 로드
+    if (expandedSongIds.has(songId)) {
+      try {
+        const results = await getVotes(songId);
+        setVoteResultsCache(prev => ({ ...prev, [songId]: results }));
+      } catch (error) {
+        console.error(`Failed to reload votes for song ${songId}:`, error);
+      }
+    }
   };
   
   // 인증 확인
