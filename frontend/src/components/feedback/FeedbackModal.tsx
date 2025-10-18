@@ -139,9 +139,9 @@ export function FeedbackModal({
           <p className="text-xs text-gray-400">
             <strong className="text-gray-300">개발자 연락처</strong>
             <br />
-            이메일: jamvote@example.com
+            이메일: yunjeongiya@gmail.com
             <br />
-            GitHub: github.com/jamvote/jamvote
+            GitHub: github.com/yunjeongiya
           </p>
         </div>
         

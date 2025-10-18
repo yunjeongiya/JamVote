@@ -1,6 +1,6 @@
 // 곡 추가 모달 컴포넌트
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Modal } from '../common/Modal';
 import { Input } from '../common/Input';
 import { Textarea } from '../common/Textarea';

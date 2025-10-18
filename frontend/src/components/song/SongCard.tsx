@@ -1,6 +1,5 @@
 // 곡 카드 컴포넌트
 
-import { useState } from 'react';
 import type { Song, VoteResults as VoteResultsType } from '../../types';
 import { VoteButton } from './VoteButton';
 import { SessionBadge } from './SessionBadge';
@@ -19,6 +18,8 @@ interface SongCardProps {
   userVoteType?: 'like' | 'impossible' | null;
   voteResults?: VoteResultsType;
   isLoadingVotes?: boolean;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
 export function SongCard({
@@ -30,8 +31,9 @@ export function SongCard({
   userVoteType,
   voteResults,
   isLoadingVotes,
+  isExpanded = false,
+  onToggleExpand,
 }: SongCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
   
   const canEdit = song.allowEditByOthers || song.proposerName === currentUserName;
   const canDelete = song.proposerName === currentUserName;
@@ -49,10 +51,10 @@ export function SongCard({
         <div className="flex items-start space-x-4">
           {/* 펼치기 버튼 */}
           <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="text-gray-400 hover:text-white transition-colors mt-1"
+            onClick={onToggleExpand}
+            className="text-gray-400 hover:text-white transition-colors mt-1 text-sm"
           >
-            {isExpanded ? '▼' : '▶'}
+            {isExpanded ? '∨' : '>'}
           </button>
           
           {/* 썸네일 */}

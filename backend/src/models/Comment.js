@@ -13,13 +13,9 @@ const commentSchema = new mongoose.Schema({
     required: true,
     index: true,
   },
-  writerName: {
+  userName: {
     type: String,
     required: true,
-  },
-  sessionInfo: {
-    type: [String],
-    default: [],
   },
   content: {
     type: String,

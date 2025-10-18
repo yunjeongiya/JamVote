@@ -1,4 +1,4 @@
-// 불가능 투표 이유 입력 모달
+// 어려워요 투표 이유 입력 모달
 
 import { useState } from 'react';
 import { Modal } from '../common/Modal';
@@ -31,10 +31,10 @@ export function ImpossibleReasonModal({
   };
   
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="불가능 투표" size="sm">
+    <Modal isOpen={isOpen} onClose={onClose} title="어려워요 투표" size="sm">
       <div className="space-y-4">
         <p className="text-sm text-gray-400">
-          이 곡을 연주하기 어려운 이유를 입력해주세요 (선택)
+          어려운 이유를 입력해주세요 (선택)
         </p>
         
         <Textarea

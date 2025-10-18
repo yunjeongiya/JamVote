@@ -1,6 +1,6 @@
 // 투표 버튼 컴포넌트
 
-import { VoteType } from '../../types';
+import type { VoteType } from '../../types/vote';
 
 interface VoteButtonProps {
   type: VoteType;

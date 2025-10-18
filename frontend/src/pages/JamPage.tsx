@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getJam } from '../api/jam';
-import { getAuth, setAuth } from '../utils/storage';
+import { getAuth, setAuth, clearAuth } from '../utils/storage';
 import { useSongs, useCreateSong, useUpdateSong, useDeleteSong } from '../hooks/useSongs';
 import { useCreateVote, useDeleteVote } from '../hooks/useVotes';
 import { updateUser } from '../api/user';
@@ -13,6 +13,7 @@ import { createFeedback } from '../api/feedback';
 import { useYouTubeSearch } from '../hooks/useYouTube';
 import { useSocket } from '../hooks/useSocket';
 import { getVotes } from '../api/vote';
+import { createComment } from '../api/comment';
 import { useToast } from '../hooks/useToast';
 import { Loading } from '../components/common/Loading';
 import { ToastContainer } from '../components/common/Toast';
@@ -96,12 +97,23 @@ export default function JamPage() {
     },
   });
   
-  const invalidateVoteCache = (songId: string) => {
+  const invalidateVoteCache = async (songId: string) => {
+    // 캐시 삭제
     setVoteResultsCache(prev => {
       const newCache = { ...prev };
       delete newCache[songId];
       return newCache;
     });
+    
+    // 펼쳐진 상태면 즉시 다시 로드
+    if (expandedSongIds.has(songId)) {
+      try {
+        const results = await getVotes(songId);
+        setVoteResultsCache(prev => ({ ...prev, [songId]: results }));
+      } catch (error) {
+        console.error(`Failed to reload votes for song ${songId}:`, error);
+      }
+    }
   };
   
   // 인증 확인
@@ -218,6 +230,18 @@ export default function JamPage() {
     }
   };
   
+  const handleToggleExpand = (songId: string) => {
+    setExpandedSongIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(songId)) {
+        newSet.delete(songId);
+      } else {
+        newSet.add(songId);
+      }
+      return newSet;
+    });
+  };
+  
   const handleVote = async (songId: string, type: 'like' | 'impossible') => {
     if (!auth) return;
     
@@ -239,7 +263,7 @@ export default function JamPage() {
       }
     }
     
-    // 불가능 투표는 이유 입력 모달 표시 (새로 투표하거나 변경하는 경우)
+    // 어려워요 투표는 이유 입력 모달 표시 (새로 투표하거나 변경하는 경우)
     if (type === 'impossible') {
       setImpossibleVoteSongId(songId);
       return;
@@ -263,13 +287,25 @@ export default function JamPage() {
     if (!impossibleVoteSongId || !auth) return;
     
     try {
+      // 1. 먼저 어려워요 투표 생성
       await createVoteMutation.mutateAsync({
         songId: impossibleVoteSongId,
         userName: auth.userName,
         type: 'impossible',
-        reason,
       });
+      
+      // 2. 이유가 있으면 댓글로 작성
+      if (reason.trim()) {
+        await createComment({
+          songId: impossibleVoteSongId,
+          userName: auth.userName,
+          content: `어려운 이유: ${reason.trim()}`,
+        });
+      }
+      
       setImpossibleVoteSongId(null);
+      success('투표가 완료되었습니다!');
+      
       // 투표 결과 캐시 무효화
       invalidateVoteCache(impossibleVoteSongId);
     } catch (err: any) {
@@ -282,13 +318,10 @@ export default function JamPage() {
     
     setIsUpdatingProfile(true);
     try {
-      await updateUser(jamId, auth.userName, data.newName, data.sessions);
+      await updateUser(jamId, auth.userName, { newName: data.newName, sessions: data.sessions });
       
       // localStorage 업데이트
-      setAuth(jamId, {
-        userName: data.newName || auth.userName,
-        sessions: data.sessions,
-      });
+      setAuth(jamId, data.newName || auth.userName, data.sessions);
       
       setIsProfileModalOpen(false);
       success('프로필이 수정되었습니다!');
@@ -301,6 +334,12 @@ export default function JamPage() {
     } finally {
       setIsUpdatingProfile(false);
     }
+  };
+  
+  const handleLogout = () => {
+    if (!jamId) return;
+    clearAuth(jamId);
+    navigate(`/${jamId}/login`);
   };
   
   const handleExpiryUpdate = async (expireDays: number) => {
@@ -358,12 +397,28 @@ export default function JamPage() {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* 헤더 */}
         <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
-          <h1 className="text-2xl font-bold text-blue-500 mb-2">
-            {jamInfo?.name}
-          </h1>
-          {jamInfo?.description && (
-            <p className="text-gray-400 mb-4">{jamInfo.description}</p>
-          )}
+          <div className="flex items-baseline justify-between mb-2">
+            <div className="flex items-baseline space-x-3">
+              <h1 className="text-2xl font-bold text-blue-500">
+                {jamInfo?.name}
+              </h1>
+              {jamInfo?.description && (
+                <p className="text-gray-400 text-sm">{jamInfo.description}</p>
+              )}
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-gray-500">ID: {jamId}</span>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  success('링크가 복사되었습니다!');
+                }}
+                className="text-xs text-gray-400 hover:text-gray-300 underline"
+              >
+                링크 복사
+              </button>
+            </div>
+          </div>
           
           {/* 만료 임박 알림 */}
           {jamInfo && jamInfo.daysRemaining <= 1 && (
@@ -377,7 +432,7 @@ export default function JamPage() {
                 </div>
                 <button
                   onClick={() => setIsExpiryModalOpen(true)}
-                  className="text-sm text-blue-400 hover:text-blue-300 underline"
+                  className="text-sm text-gray-400 hover:text-gray-300 underline"
                 >
                   연장하기
                 </button>
@@ -386,38 +441,41 @@ export default function JamPage() {
           )}
           
           <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center space-x-4">
-              <div>
-                <span className="text-gray-500">로그인:</span>{' '}
-                <span className="text-white">{auth.userName}</span>
-                {auth.sessions.length > 0 && (
-                  <>
-                    {' '}
-                    <span className="text-gray-500">
-                      ({auth.sessions.join(', ')})
-                    </span>
-                  </>
-                )}
-              </div>
-              <button
-                onClick={() => setIsProfileModalOpen(true)}
-                className="text-xs text-blue-400 hover:text-blue-300 underline"
-              >
-                프로필 수정
-              </button>
-            </div>
             <div className="flex items-center space-x-2">
               <div>
-                <span className="text-gray-500">유효기한:</span>{' '}
+                <span className="text-gray-500">잼 유효기한:</span>{' '}
                 <span className={jamInfo && jamInfo.daysRemaining <= 3 ? 'text-yellow-400' : 'text-white'}>
                   {jamInfo?.daysRemaining}일 남음
                 </span>
               </div>
               <button
                 onClick={() => setIsExpiryModalOpen(true)}
-                className="text-xs text-blue-400 hover:text-blue-300 underline"
+                className="text-xs text-gray-400 hover:text-gray-300 underline"
               >
                 연장
+              </button>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <span className="text-white">{auth.userName}</span>
+              {auth.sessions && auth.sessions.length > 0 && (
+                <span className="text-gray-500">
+                  ({auth.sessions.join(', ')})
+                </span>
+              )}
+              <span className="text-gray-600">|</span>
+              <button
+                onClick={() => setIsProfileModalOpen(true)}
+                className="text-xs text-gray-400 hover:text-gray-300 underline"
+              >
+                프로필 수정
+              </button>
+              <span className="text-gray-600">|</span>
+              <button
+                onClick={handleLogout}
+                className="text-xs text-gray-400 hover:text-gray-300 underline"
+              >
+                로그아웃
               </button>
             </div>
           </div>
@@ -426,45 +484,86 @@ export default function JamPage() {
         {/* 검색 바 */}
         <SongSearchBar
           onSearch={setSearchQuery}
-          placeholder="YouTube에서 곡 검색..."
+          placeholder="곡 제목, 아티스트 또는 YouTube 검색..."
         />
         
-        {/* YouTube 검색 결과 */}
-        {searchQuery && searchResults && searchResults.length > 0 && (
-          <div className="bg-gray-900 rounded-lg border border-gray-800 p-4">
-            <h3 className="text-sm font-semibold text-gray-300 mb-3">검색 결과</h3>
-            <div className="space-y-2">
-              {searchResults.map((result) => (
-                <YouTubeSearchResultItem
-                  key={result.videoId}
-                  result={result}
-                  onClick={() => handleVideoSelect(result)}
-                />
-              ))}
-            </div>
+        {/* 검색 모드 */}
+        {searchQuery ? (
+          <div className="space-y-4">
+            {/* 기존 곡에서 검색 */}
+            {(() => {
+              const filteredSongs = songs.filter(song =>
+                song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                song.artist.toLowerCase().includes(searchQuery.toLowerCase())
+              );
+              
+              return filteredSongs.length > 0 ? (
+                <div>
+                  <h2 className="text-lg font-semibold text-white mb-4">
+                    제안된 곡에서 검색 ({filteredSongs.length})
+                  </h2>
+                  <SongList
+                    songs={filteredSongs}
+                    isLoading={false}
+                    currentUserName={auth.userName}
+                    onVote={handleVote}
+                    onEdit={setEditingSong}
+                    onDelete={handleDeleteSong}
+                    getUserVoteType={(songId) => {
+                      const song = songs.find(s => s.songId === songId);
+                      return song?.userVote || null;
+                    }}
+                    getVoteResults={(songId) => voteResultsCache[songId]}
+                    isLoadingVotes={(songId) => expandedSongIds.has(songId) && !voteResultsCache[songId]}
+                    onToggleExpand={handleToggleExpand}
+                    expandedSongIds={expandedSongIds}
+                  />
+                </div>
+              ) : null;
+            })()}
+            
+            {/* YouTube 검색 결과 */}
+            {searchResults && searchResults.length > 0 && (
+              <div className="bg-gray-900 rounded-lg border border-gray-800 p-4">
+                <h3 className="text-sm font-semibold text-gray-300 mb-3">
+                  YouTube 검색 결과
+                </h3>
+                <div className="space-y-2">
+                  {searchResults.map((result) => (
+                    <YouTubeSearchResultItem
+                      key={result.videoId}
+                      result={result}
+                      onClick={() => handleVideoSelect(result)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* 전체 곡 리스트 */
+          <div>
+            <h2 className="text-lg font-semibold text-white mb-4">
+              제안된 곡 ({songs.length})
+            </h2>
+            <SongList
+              songs={songs}
+              isLoading={songsLoading}
+              currentUserName={auth.userName}
+              onVote={handleVote}
+              onEdit={setEditingSong}
+              onDelete={handleDeleteSong}
+              getUserVoteType={(songId) => {
+                const song = songs.find(s => s.songId === songId);
+                return song?.userVote || null;
+              }}
+              getVoteResults={(songId) => voteResultsCache[songId]}
+              isLoadingVotes={(songId) => expandedSongIds.has(songId) && !voteResultsCache[songId]}
+              onToggleExpand={handleToggleExpand}
+              expandedSongIds={expandedSongIds}
+            />
           </div>
         )}
-        
-        {/* 곡 리스트 */}
-        <div>
-          <h2 className="text-lg font-semibold text-white mb-4">
-            제안된 곡 ({songs.length})
-          </h2>
-          <SongList
-            songs={songs}
-            isLoading={songsLoading}
-            currentUserName={auth.userName}
-            onVote={handleVote}
-            onEdit={setEditingSong}
-            onDelete={handleDeleteSong}
-            getUserVoteType={(songId) => {
-              const song = songs.find(s => s.songId === songId);
-              return song?.userVote || null;
-            }}
-            getVoteResults={(songId) => voteResultsCache[songId]}
-            isLoadingVotes={(songId) => expandedSongIds.has(songId) && !voteResultsCache[songId]}
-          />
-        </div>
         
         {/* 곡 추가 모달 */}
         <AddSongModal
@@ -491,7 +590,7 @@ export default function JamPage() {
           />
         )}
         
-        {/* 불가능 투표 이유 모달 */}
+        {/* 어려워요 투표 이유 모달 */}
         <ImpossibleReasonModal
           isOpen={!!impossibleVoteSongId}
           onClose={() => setImpossibleVoteSongId(null)}
