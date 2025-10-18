@@ -397,13 +397,27 @@ export default function JamPage() {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* 헤더 */}
         <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
-          <div className="flex items-baseline space-x-3 mb-2">
-            <h1 className="text-2xl font-bold text-blue-500">
-              {jamInfo?.name}
-            </h1>
-            {jamInfo?.description && (
-              <p className="text-gray-400 text-sm">{jamInfo.description}</p>
-            )}
+          <div className="flex items-baseline justify-between mb-2">
+            <div className="flex items-baseline space-x-3">
+              <h1 className="text-2xl font-bold text-blue-500">
+                {jamInfo?.name}
+              </h1>
+              {jamInfo?.description && (
+                <p className="text-gray-400 text-sm">{jamInfo.description}</p>
+              )}
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-gray-500">ID: {jamId}</span>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  success('링크가 복사되었습니다!');
+                }}
+                className="text-xs text-gray-400 hover:text-gray-300 underline"
+              >
+                링크 복사
+              </button>
+            </div>
           </div>
           
           {/* 만료 임박 알림 */}
