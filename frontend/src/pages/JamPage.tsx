@@ -400,6 +400,7 @@ export default function JamPage() {
           <h1 className="text-2xl font-bold text-blue-500 mb-2">
             {jamInfo?.name}
           </h1>
+          
           {jamInfo?.description && (
             <p className="text-gray-400 mb-4">{jamInfo.description}</p>
           )}
@@ -425,38 +426,9 @@ export default function JamPage() {
           )}
           
           <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center space-x-4">
-              <div>
-                <span className="text-gray-500">로그인:</span>{' '}
-                <span className="text-white">{auth.userName}</span>
-                {auth.sessions && auth.sessions.length > 0 && (
-                  <>
-                    {' '}
-                    <span className="text-gray-500">
-                      ({auth.sessions.join(', ')})
-                    </span>
-                  </>
-                )}
-              </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setIsProfileModalOpen(true)}
-                  className="text-xs text-gray-400 hover:text-gray-300 underline"
-                >
-                  프로필 수정
-                </button>
-                <span className="text-gray-600">|</span>
-                <button
-                  onClick={handleLogout}
-                  className="text-xs text-gray-400 hover:text-gray-300 underline"
-                >
-                  로그아웃
-                </button>
-              </div>
-            </div>
             <div className="flex items-center space-x-2">
               <div>
-                <span className="text-gray-500">유효기한:</span>{' '}
+                <span className="text-gray-500">잼 유효기한:</span>{' '}
                 <span className={jamInfo && jamInfo.daysRemaining <= 3 ? 'text-yellow-400' : 'text-white'}>
                   {jamInfo?.daysRemaining}일 남음
                 </span>
@@ -466,6 +438,29 @@ export default function JamPage() {
                 className="text-xs text-gray-400 hover:text-gray-300 underline"
               >
                 연장
+              </button>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <span className="text-white">{auth.userName}</span>
+              {auth.sessions && auth.sessions.length > 0 && (
+                <span className="text-gray-500">
+                  ({auth.sessions.join(', ')})
+                </span>
+              )}
+              <span className="text-gray-600">|</span>
+              <button
+                onClick={() => setIsProfileModalOpen(true)}
+                className="text-xs text-gray-400 hover:text-gray-300 underline"
+              >
+                프로필 수정
+              </button>
+              <span className="text-gray-600">|</span>
+              <button
+                onClick={handleLogout}
+                className="text-xs text-gray-400 hover:text-gray-300 underline"
+              >
+                로그아웃
               </button>
             </div>
           </div>

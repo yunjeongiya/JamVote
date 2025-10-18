@@ -83,6 +83,7 @@ export default function LoginPage() {
   
   const handleSubmit = () => {
     const trimmedName = name.trim();
+    const trimmedPassword = password.trim();
     
     if (!trimmedName) {
       alert('이름을 입력해주세요');
@@ -94,18 +95,24 @@ export default function LoginPage() {
       return;
     }
     
+    // 비밀번호가 입력되었으면 4자 이상이어야 함
+    if (trimmedPassword && trimmedPassword.length < 4) {
+      alert('비밀번호는 최소 4자 이상이어야 합니다');
+      return;
+    }
+    
     if (isCreateMode) {
       createMutation.mutate({
         jamId: jamId!,
         name: trimmedName,
-        password: password.trim() || undefined,
+        password: trimmedPassword || undefined,
         sessions,
       });
     } else {
       loginMutation.mutate({
         jamId: jamId!,
         name: trimmedName,
-        password: password.trim() || undefined,
+        password: trimmedPassword || undefined,
       });
     }
   };
@@ -171,10 +178,10 @@ export default function LoginPage() {
             <Input
               label="비밀번호 (선택)"
               type="password"
-              placeholder="비밀번호 (선택사항)"
+              placeholder="비밀번호 (최소 4자)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              helperText="비밀번호를 설정하지 않으면 이름만으로 입장할 수 있습니다"
+              helperText="비밀번호를 설정하지 않으면 이름만으로 입장할 수 있습니다 (설정 시 최소 4자)"
             />
             
             {/* 프로필 생성 모드에서만 세션 선택 */}
