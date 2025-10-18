@@ -14,6 +14,7 @@ export const EXPIRE_DAYS_OPTIONS = [
 export const DEFAULT_EXPIRE_DAYS = 30;
 
 export const DEVELOPER_EMAIL = 'yunjeongiya@gmail.com';
+export const DEVELOPER_GITHUB = 'yunjeongiya';
 
 export const SHARE_LINK_BASE = 'https://jamvote.app';
 
