@@ -61,23 +61,29 @@ describe('ErrorBoundary', () => {
 
   it('should have retry button that resets error', async () => {
     const user = userEvent.setup();
+    let shouldThrow = true;
+
+    // Create a component that reads from the closure variable
+    function DynamicThrowError() {
+      if (shouldThrow) {
+        throw new Error('Test error');
+      }
+      return <div>No error</div>;
+    }
+
     const { rerender } = render(
       <ErrorBoundary>
-        <ThrowError shouldThrow={true} />
+        <DynamicThrowError />
       </ErrorBoundary>
     );
 
     expect(screen.getByText(/앗! 문제가 발생했습니다/i)).toBeInTheDocument();
 
+    // Change the throwing behavior before clicking retry
+    shouldThrow = false;
+
     const retryButton = screen.getByText('다시 시도');
     await user.click(retryButton);
-
-    // Error boundary should reset
-    rerender(
-      <ErrorBoundary>
-        <ThrowError shouldThrow={false} />
-      </ErrorBoundary>
-    );
 
     expect(screen.getByText('No error')).toBeInTheDocument();
   });

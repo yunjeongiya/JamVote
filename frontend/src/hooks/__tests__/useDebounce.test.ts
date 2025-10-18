@@ -1,11 +1,18 @@
 // useDebounce 훅 테스트
 
-import { renderHook, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { renderHook, waitFor, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useDebounce } from '../useDebounce';
 import { DEBOUNCE_DELAY } from '../../constants/config';
 
 describe('useDebounce', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
   it('should return initial value immediately', () => {
     const { result } = renderHook(() => useDebounce('initial', 500));
     expect(result.current).toBe('initial');
@@ -23,13 +30,12 @@ describe('useDebounce', () => {
     rerender({ value: 'updated', delay: 500 });
     expect(result.current).toBe('initial'); // Still initial
 
-    // Wait for debounce
-    await waitFor(
-      () => {
-        expect(result.current).toBe('updated');
-      },
-      { timeout: 600 }
-    );
+    // Advance timer
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+
+    expect(result.current).toBe('updated');
   });
 
   it('should use default delay from config', async () => {
@@ -39,12 +45,11 @@ describe('useDebounce', () => {
 
     rerender({ value: 'updated' });
 
-    await waitFor(
-      () => {
-        expect(result.current).toBe('updated');
-      },
-      { timeout: DEBOUNCE_DELAY + 100 }
-    );
+    act(() => {
+      vi.advanceTimersByTime(DEBOUNCE_DELAY);
+    });
+
+    expect(result.current).toBe('updated');
   });
 
   it('should cancel previous timeout on rapid changes', async () => {
@@ -59,12 +64,11 @@ describe('useDebounce', () => {
     rerender({ value: 'update3' });
 
     // Should only update to the last value
-    await waitFor(
-      () => {
-        expect(result.current).toBe('update3');
-      },
-      { timeout: 400 }
-    );
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+
+    expect(result.current).toBe('update3');
   });
 
   it('should handle different types', async () => {
@@ -77,12 +81,11 @@ describe('useDebounce', () => {
 
     rerender({ value: 100 });
 
-    await waitFor(
-      () => {
-        expect(result.current).toBe(100);
-      },
-      { timeout: 400 }
-    );
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+
+    expect(result.current).toBe(100);
   });
 
   it('should handle objects', async () => {
@@ -98,11 +101,10 @@ describe('useDebounce', () => {
 
     rerender({ value: updatedObj });
 
-    await waitFor(
-      () => {
-        expect(result.current).toEqual(updatedObj);
-      },
-      { timeout: 400 }
-    );
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+
+    expect(result.current).toEqual(updatedObj);
   });
 });
