@@ -397,13 +397,14 @@ export default function JamPage() {
       <div className="max-w-4xl mx-auto space-y-6">
         {/* 헤더 */}
         <div className="bg-gray-900 rounded-lg p-6 border border-gray-800">
-          <h1 className="text-2xl font-bold text-blue-500 mb-2">
-            {jamInfo?.name}
-          </h1>
-          
-          {jamInfo?.description && (
-            <p className="text-gray-400 mb-4">{jamInfo.description}</p>
-          )}
+          <div className="flex items-baseline space-x-3 mb-2">
+            <h1 className="text-2xl font-bold text-blue-500">
+              {jamInfo?.name}
+            </h1>
+            {jamInfo?.description && (
+              <p className="text-gray-400 text-sm">{jamInfo.description}</p>
+            )}
+          </div>
           
           {/* 만료 임박 알림 */}
           {jamInfo && jamInfo.daysRemaining <= 1 && (
@@ -469,47 +470,86 @@ export default function JamPage() {
         {/* 검색 바 */}
         <SongSearchBar
           onSearch={setSearchQuery}
-          placeholder="YouTube에서 곡 검색..."
+          placeholder="곡 제목, 아티스트 또는 YouTube 검색..."
         />
         
-        {/* YouTube 검색 결과 */}
-        {searchQuery && searchResults && searchResults.length > 0 && (
-          <div className="bg-gray-900 rounded-lg border border-gray-800 p-4">
-            <h3 className="text-sm font-semibold text-gray-300 mb-3">검색 결과</h3>
-            <div className="space-y-2">
-              {searchResults.map((result) => (
-                <YouTubeSearchResultItem
-                  key={result.videoId}
-                  result={result}
-                  onClick={() => handleVideoSelect(result)}
-                />
-              ))}
-            </div>
+        {/* 검색 모드 */}
+        {searchQuery ? (
+          <div className="space-y-4">
+            {/* 기존 곡에서 검색 */}
+            {(() => {
+              const filteredSongs = songs.filter(song =>
+                song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                song.artist.toLowerCase().includes(searchQuery.toLowerCase())
+              );
+              
+              return filteredSongs.length > 0 ? (
+                <div>
+                  <h2 className="text-lg font-semibold text-white mb-4">
+                    제안된 곡에서 검색 ({filteredSongs.length})
+                  </h2>
+                  <SongList
+                    songs={filteredSongs}
+                    isLoading={false}
+                    currentUserName={auth.userName}
+                    onVote={handleVote}
+                    onEdit={setEditingSong}
+                    onDelete={handleDeleteSong}
+                    getUserVoteType={(songId) => {
+                      const song = songs.find(s => s.songId === songId);
+                      return song?.userVote || null;
+                    }}
+                    getVoteResults={(songId) => voteResultsCache[songId]}
+                    isLoadingVotes={(songId) => expandedSongIds.has(songId) && !voteResultsCache[songId]}
+                    onToggleExpand={handleToggleExpand}
+                    expandedSongIds={expandedSongIds}
+                  />
+                </div>
+              ) : null;
+            })()}
+            
+            {/* YouTube 검색 결과 */}
+            {searchResults && searchResults.length > 0 && (
+              <div className="bg-gray-900 rounded-lg border border-gray-800 p-4">
+                <h3 className="text-sm font-semibold text-gray-300 mb-3">
+                  YouTube 검색 결과
+                </h3>
+                <div className="space-y-2">
+                  {searchResults.map((result) => (
+                    <YouTubeSearchResultItem
+                      key={result.videoId}
+                      result={result}
+                      onClick={() => handleVideoSelect(result)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* 전체 곡 리스트 */
+          <div>
+            <h2 className="text-lg font-semibold text-white mb-4">
+              제안된 곡 ({songs.length})
+            </h2>
+            <SongList
+              songs={songs}
+              isLoading={songsLoading}
+              currentUserName={auth.userName}
+              onVote={handleVote}
+              onEdit={setEditingSong}
+              onDelete={handleDeleteSong}
+              getUserVoteType={(songId) => {
+                const song = songs.find(s => s.songId === songId);
+                return song?.userVote || null;
+              }}
+              getVoteResults={(songId) => voteResultsCache[songId]}
+              isLoadingVotes={(songId) => expandedSongIds.has(songId) && !voteResultsCache[songId]}
+              onToggleExpand={handleToggleExpand}
+              expandedSongIds={expandedSongIds}
+            />
           </div>
         )}
-        
-        {/* 곡 리스트 */}
-        <div>
-          <h2 className="text-lg font-semibold text-white mb-4">
-            제안된 곡 ({songs.length})
-          </h2>
-          <SongList
-            songs={songs}
-            isLoading={songsLoading}
-            currentUserName={auth.userName}
-            onVote={handleVote}
-            onEdit={setEditingSong}
-            onDelete={handleDeleteSong}
-            getUserVoteType={(songId) => {
-              const song = songs.find(s => s.songId === songId);
-              return song?.userVote || null;
-            }}
-            getVoteResults={(songId) => voteResultsCache[songId]}
-            isLoadingVotes={(songId) => expandedSongIds.has(songId) && !voteResultsCache[songId]}
-            onToggleExpand={handleToggleExpand}
-            expandedSongIds={expandedSongIds}
-          />
-        </div>
         
         {/* 곡 추가 모달 */}
         <AddSongModal
