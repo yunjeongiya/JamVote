@@ -1,5 +1,6 @@
 // 곡 카드 컴포넌트
 
+import { useState } from 'react';
 import type { Song, VoteResults as VoteResultsType } from '../../types';
 import { VoteButton } from './VoteButton';
 import { SessionBadge } from './SessionBadge';
@@ -8,6 +9,7 @@ import { VoteResults } from './VoteResults';
 import { CommentSection } from '../comment/CommentSection';
 import { Button } from '../common/Button';
 import { Loading } from '../common/Loading';
+import { ConfirmModal } from '../common/ConfirmModal';
 
 interface SongCardProps {
   song: Song;
@@ -34,14 +36,18 @@ export function SongCard({
   isExpanded = false,
   onToggleExpand,
 }: SongCardProps) {
-  
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
   const canEdit = song.allowEditByOthers || song.proposerName === currentUserName;
   const canDelete = song.proposerName === currentUserName;
-  
-  const handleDelete = () => {
-    if (window.confirm('정말 이 곡을 삭제하시겠습니까?')) {
-      onDelete?.(song.songId);
-    }
+
+  const handleDeleteClick = () => {
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    onDelete?.(song.songId);
+    setIsDeleteModalOpen(false);
   };
   
   return (
@@ -167,13 +173,24 @@ export function SongCard({
               </Button>
             )}
             {canDelete && onDelete && (
-              <Button size="sm" variant="danger" onClick={handleDelete}>
+              <Button size="sm" variant="danger" onClick={handleDeleteClick}>
                 삭제
               </Button>
             )}
           </div>
         </div>
       )}
+
+      {/* 삭제 확인 모달 */}
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDeleteConfirm}
+        title="곡 삭제"
+        message={`정말 "${song.title}"을(를) 삭제하시겠습니까?`}
+        confirmText="삭제"
+        confirmVariant="danger"
+      />
     </div>
   );
 }

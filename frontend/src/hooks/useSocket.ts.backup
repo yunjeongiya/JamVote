@@ -19,56 +19,73 @@ interface UseSocketOptions {
 
 export function useSocket(options: UseSocketOptions) {
   const socketRef = useRef<Socket | null>(null);
-  const handlersRef = useRef<Omit<UseSocketOptions, 'jamId'>>(options);
-
-  const { jamId } = options;
-
-  // 핸들러들을 ref에 저장하여 의존성 배열에서 제외 (메모리 누수 방지)
-  useEffect(() => {
-    handlersRef.current = {
-      onSongCreated: options.onSongCreated,
-      onSongUpdated: options.onSongUpdated,
-      onSongDeleted: options.onSongDeleted,
-      onVoteCreated: options.onVoteCreated,
-      onVoteChanged: options.onVoteChanged,
-      onVoteDeleted: options.onVoteDeleted,
-      onCommentCreated: options.onCommentCreated,
-      onCommentDeleted: options.onCommentDeleted,
-    };
-  });
-
+  const {
+    jamId,
+    onSongCreated,
+    onSongUpdated,
+    onSongDeleted,
+    onVoteCreated,
+    onVoteChanged,
+    onVoteDeleted,
+    onCommentCreated,
+    onCommentDeleted,
+  } = options;
+  
   useEffect(() => {
     // Socket.io 연결
     socketRef.current = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
     });
-
+    
     const socket = socketRef.current;
-
+    
     // 방 입장
     socket.emit('joinJam', jamId);
     console.log(`Joined jam: ${jamId}`);
-
-    // 이벤트 리스너 등록 - ref에서 핸들러 참조
-    socket.on('songCreated', (data) => handlersRef.current.onSongCreated?.(data));
-    socket.on('songUpdated', (data) => handlersRef.current.onSongUpdated?.(data));
-    socket.on('songDeleted', (data) => handlersRef.current.onSongDeleted?.(data));
-    socket.on('voteCreated', (data) => handlersRef.current.onVoteCreated?.(data));
-    socket.on('voteChanged', (data) => handlersRef.current.onVoteChanged?.(data));
-    socket.on('voteDeleted', (data) => handlersRef.current.onVoteDeleted?.(data));
-    socket.on('commentCreated', (data) => handlersRef.current.onCommentCreated?.(data));
-    socket.on('commentDeleted', (data) => handlersRef.current.onCommentDeleted?.(data));
-
+    
+    // 이벤트 리스너 등록
+    if (onSongCreated) {
+      socket.on('songCreated', onSongCreated);
+    }
+    
+    if (onSongUpdated) {
+      socket.on('songUpdated', onSongUpdated);
+    }
+    
+    if (onSongDeleted) {
+      socket.on('songDeleted', onSongDeleted);
+    }
+    
+    if (onVoteCreated) {
+      socket.on('voteCreated', onVoteCreated);
+    }
+    
+    if (onVoteChanged) {
+      socket.on('voteChanged', onVoteChanged);
+    }
+    
+    if (onVoteDeleted) {
+      socket.on('voteDeleted', onVoteDeleted);
+    }
+    
+    if (onCommentCreated) {
+      socket.on('commentCreated', onCommentCreated);
+    }
+    
+    if (onCommentDeleted) {
+      socket.on('commentDeleted', onCommentDeleted);
+    }
+    
     // 연결 성공
     socket.on('connect', () => {
       console.log('Socket.io connected');
     });
-
+    
     // 연결 해제
     socket.on('disconnect', () => {
       console.log('Socket.io disconnected');
     });
-
+    
     // 클린업
     return () => {
       socket.emit('leaveJam', jamId);
@@ -84,7 +101,18 @@ export function useSocket(options: UseSocketOptions) {
       socket.off('disconnect');
       socket.disconnect();
     };
-  }, [jamId]); // jamId만 의존성으로 유지 - 불필요한 재연결 방지
-
+  }, [
+    jamId,
+    onSongCreated,
+    onSongUpdated,
+    onSongDeleted,
+    onVoteCreated,
+    onVoteChanged,
+    onVoteDeleted,
+    onCommentCreated,
+    onCommentDeleted,
+  ]);
+  
   return socketRef.current;
 }
+

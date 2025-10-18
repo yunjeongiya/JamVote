@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Input } from '../common/Input';
+import { useDebounce } from '../../hooks/useDebounce';
 
 interface SongSearchBarProps {
   onSearch: (query: string) => void;
@@ -10,15 +11,12 @@ interface SongSearchBarProps {
 
 export function SongSearchBar({ onSearch, placeholder = '곡 제목 또는 아티스트 검색' }: SongSearchBarProps) {
   const [query, setQuery] = useState('');
-  
+  const debouncedQuery = useDebounce(query, 500);
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onSearch(query);
-    }, 500); // 500ms 디바운싱
-    
-    return () => clearTimeout(timer);
-  }, [query, onSearch]);
-  
+    onSearch(debouncedQuery);
+  }, [debouncedQuery, onSearch]);
+
   return (
     <div>
       <Input
