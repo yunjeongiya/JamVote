@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getJam } from '../api/jam';
-import { getAuth, setAuth } from '../utils/storage';
+import { getAuth, setAuth, clearAuth } from '../utils/storage';
 import { useSongs, useCreateSong, useUpdateSong, useDeleteSong } from '../hooks/useSongs';
 import { useCreateVote, useDeleteVote } from '../hooks/useVotes';
 import { updateUser } from '../api/user';
@@ -336,6 +336,12 @@ export default function JamPage() {
     }
   };
   
+  const handleLogout = () => {
+    if (!jamId) return;
+    clearAuth(jamId);
+    navigate(`/${jamId}/login`);
+  };
+  
   const handleExpiryUpdate = async (expireDays: number) => {
     if (!jamId) return;
     
@@ -410,7 +416,7 @@ export default function JamPage() {
                 </div>
                 <button
                   onClick={() => setIsExpiryModalOpen(true)}
-                  className="text-sm text-blue-400 hover:text-blue-300 underline"
+                  className="text-sm text-gray-400 hover:text-gray-300 underline"
                 >
                   연장하기
                 </button>
@@ -432,12 +438,21 @@ export default function JamPage() {
                   </>
                 )}
               </div>
-              <button
-                onClick={() => setIsProfileModalOpen(true)}
-                className="text-xs text-blue-400 hover:text-blue-300 underline"
-              >
-                프로필 수정
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setIsProfileModalOpen(true)}
+                  className="text-xs text-gray-400 hover:text-gray-300 underline"
+                >
+                  프로필 수정
+                </button>
+                <span className="text-gray-600">|</span>
+                <button
+                  onClick={handleLogout}
+                  className="text-xs text-gray-400 hover:text-gray-300 underline"
+                >
+                  로그아웃
+                </button>
+              </div>
             </div>
             <div className="flex items-center space-x-2">
               <div>
@@ -448,7 +463,7 @@ export default function JamPage() {
               </div>
               <button
                 onClick={() => setIsExpiryModalOpen(true)}
-                className="text-xs text-blue-400 hover:text-blue-300 underline"
+                className="text-xs text-gray-400 hover:text-gray-300 underline"
               >
                 연장
               </button>
