@@ -1,14 +1,14 @@
 // Axios 클라이언트 설정
 
 import axios from 'axios';
-import { API_URL } from '../constants/config';
+import { API_URL, API_TIMEOUT } from '../constants/config';
 
 const client = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10초
+  timeout: API_TIMEOUT,
 });
 
 // 요청 인터셉터
